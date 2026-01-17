@@ -1,19 +1,32 @@
-# Test assignment
+# Test assignment for Tikkie
 
-We are looking for Automation Engineers that have the mindset "only the sky is the limit" and "automation doesn't stop at testing, it's just a beginning!" ;)
+## Author
 
-The purpose of this test assignment is to assess the applicant's automation skills, allowing him/her to show the best they can do and how fast they can learn.
-It is an open assignment. There is no the right answer and there is no end goal other than proving yourself. Surprise us!
+* Applicant: Roman Iovlev
+* Email: <romanyister@gmail.com>
 
-Make sure that you give detailed comments or descriptions of your tests.
-When the assignment is complete, please push your solution to Github(Gitlab) and send us the link 
+## Technologies
 
-If you have any questions, please contact us back.
+### Application
 
-Good luck.
+* **Language**: Kotlin 1.9.22
+* **Android SDK**: 34
+* **UI Framework**: Material Design Components, AppCompat, ConstraintLayout
+* **Build Tool**: Gradle/Android Gradle Plugin 8.13.2
 
-PS. We don't expect you to spend weeks (and sleepless nights) on doing it. Lets see how far you can get in 6-10 hours. We want to see how you approach and solve problems.
+### Testing
 
-PSPS. Please use mobile native tools. (Tests written on Java are accepted too)
+* **UI Testing Framework**: Kaspresso 1.5.3 (with advanced builder for detailed logging and screenshots)
 
+* **Page Object Pattern**: Kakao 3.0.0
+* **Test Runner**: AndroidJUnitRunner
+* **Assertions**: Espresso Core 3.2.0
+* **Test Framework**: JUnit 4.12, AndroidX Test Extensions
+* **Report Generation**: Custom Kaspresso HTML Report with steps
 
+## Run tests in Android Studio
+
+1. Run tests in Android Studio (you can use Green arrows near tests or use terminal)
+2. Kaspresso HTML test report will build/run automatically after test run complete  
+
+P.S. You can find test report here: `app\build\reports\androidTests\connected\debug\index.html`
