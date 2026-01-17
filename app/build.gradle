@@ -114,39 +114,49 @@ task enhanceTestReport {
             deviceDir.eachFileMatch(~/logcat-.*\.txt/) { logcatFile ->
                 def logcatContent = logcatFile.text
                 
-                // Extract step information
-                def steps = []
-                def currentStep = null
+                // Extract step information with hierarchy tracking
+                def stepStack = []  // Stack to track nested steps
+                def allSteps = []   // Flat list of all steps with hierarchy info
+                
                 logcatContent.eachLine { line ->
-                    if (line.contains('TEST STEP:')) {
-                        def stepMatch = line =~ /TEST STEP: "(.+?)"/
+                    // Match start of step - more specific regex to avoid matching SUCCEED/FAILED lines
+                    if (line.contains('TEST STEP:') && !line.contains('SUCCEED') && !line.contains('FAILED') && !line.contains('finished')) {
+                        // Regex to capture the step name, optionally stripping existing "1. " or "1.1. " numbering
+                        def stepMatch = line =~ /TEST STEP: "(?:\d+(?:\.\d+)*\.\s+)?(.+?)"/
                         if (stepMatch) {
-                            currentStep = [name: stepMatch[0][1], status: 'RUNNING', duration: '']
+                            def stepName = stepMatch[0][1]
+                            def step = [
+                                name: stepName,
+                                status: 'RUNNING',
+                                duration: '',
+                                children: []
+                            ]
+                            
+                            if (!stepStack.isEmpty()) {
+                                stepStack.last().children.add(step)
+                            } else {
+                                allSteps.add(step)
+                            }
+                            stepStack.push(step)
                         }
-                    }
-                    if (currentStep && line.contains('SUCCEED')) {
-                        def succeedMatch = line =~ /SUCCEED\. It took (.+?)\./
-                        if (succeedMatch) {
-                            currentStep.status = 'SUCCEED'
-                            currentStep.duration = succeedMatch[0][1]
-                            steps.add(currentStep)
-                            currentStep = null
-                        }
-                    }
-                    if (currentStep && line.contains('FAILED')) {
-                        def failedMatch = line =~ /FAILED\. It took (.+?)\./
-                        if (failedMatch) {
-                            currentStep.status = 'FAILED'
-                            currentStep.duration = failedMatch[0][1]
-                            steps.add(currentStep)
-                            currentStep = null
+                    } 
+                    // Match end of step
+                    else if (line.contains('SUCCEED') || line.contains('FAILED')) {
+                        def status = line.contains('SUCCEED') ? 'SUCCEED' : 'FAILED'
+                        def durationMatch = line =~ /(?:SUCCEED|FAILED)\. It took (.+?)\./
+                        if (durationMatch && !stepStack.isEmpty()) {
+                            def currentStep = stepStack.pop()
+                            currentStep.status = status
+                            currentStep.duration = durationMatch[0][1]
                         }
                     }
                 }
                 
+                // Deduplicate steps (same name at same level)
+                def deduplicatedSteps = deduplicateSteps(allSteps)
+                
                 // Find corresponding HTML file and enhance it
-                if (steps.size() > 0) {
-                    // Extract class name from logcat filename: logcat-com.abnamro.apps.referenceandroid.MainActivityTest-testMainScreenIsDisplayed.txt
+                if (deduplicatedSteps.size() > 0) {
                     def filenameMatch = logcatFile.name =~ /logcat-(.+?)-(.+?)\.txt/
                     if (filenameMatch) {
                         def className = filenameMatch[0][1]
@@ -155,46 +165,191 @@ task enhanceTestReport {
                         if (htmlFile.exists()) {
                             def htmlContent = htmlFile.text
                             
-                            // Add steps section before footer
-                            def stepsHtml = """
-<div id="kaspresso-steps" style="margin: 20px 0; padding: 20px; background-color: #f9f9f9; border-radius: 5px;">
-<h2 style="color: #333; margin-bottom: 15px;">Kaspresso Test Steps</h2>
-<table style="width: 100%; border-collapse: collapse; background-color: white;">
-<thead>
-<tr style="background-color: #4CAF50; color: white;">
-<th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Step</th>
-<th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Status</th>
-<th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Duration</th>
-</tr>
-</thead>
-<tbody>
-"""
-                            steps.each { step ->
-                                def statusColor = step.status == 'SUCCEED' ? '#4CAF50' : '#f44336'
-                                stepsHtml += """
-<tr>
-<td style="padding: 10px; border: 1px solid #ddd;">${step.name}</td>
-<td style="padding: 10px; border: 1px solid #ddd; color: ${statusColor}; font-weight: bold;">${step.status == 'SUCCEED' ? 'PASSED' : 'FAILED'}</td>
-<td style="padding: 10px; border: 1px solid #ddd;">${step.duration}</td>
-</tr>
-"""
-                            }
-                            stepsHtml += """
-</tbody>
-</table>
-</div>
-"""
+                            // Generate HTML for steps
+                            def stepsHtml = generateStepsHtml(deduplicatedSteps)
                             
                             // Insert before footer
                             htmlContent = htmlContent.replace('<div id="footer">', stepsHtml + '<div id="footer">')
                             htmlFile.text = htmlContent
-                            println "Enhanced ${htmlFile.name} with ${steps.size()} Kaspresso steps"
+                            println "Enhanced ${htmlFile.name} with ${countAllSteps(deduplicatedSteps)} Kaspresso steps"
                         }
                     }
                 }
             }
         }
     }
+}
+
+// Helper function to deduplicate steps
+def deduplicateSteps(steps) {
+    def seen = [] as Set
+    def deduplicated = []
+    
+    steps.each { step ->
+        def key = step.name
+        if (!seen.contains(key)) {
+            seen.add(key)
+            if (step.children && step.children.size() > 0) {
+                step.children = deduplicateSteps(step.children)
+            }
+            deduplicated.add(step)
+        }
+    }
+    
+    return deduplicated
+}
+
+// Helper function to count all steps
+def countAllSteps(steps) {
+    def count = 0
+    steps.each { step ->
+        count++
+        if (step.children) {
+            count += countAllSteps(step.children)
+        }
+    }
+    return count
+}
+
+// Helper function to generate HTML for steps
+def generateStepsHtml(steps, stepIdPrefix = 'step') {
+    def html = """
+<div id="kaspresso-steps" style="margin: 20px 0; padding: 20px; background-color: #f9f9f9; border-radius: 5px;">
+<h2 style="color: #333; margin-bottom: 15px;">Kaspresso Test Steps</h2>
+<style>
+.kaspresso-step-row {
+    cursor: pointer;
+    user-select: none;
+}
+.kaspresso-step-row:hover {
+    background-color: #f0f0f0;
+}
+.kaspresso-step-content {
+    display: none;
+}
+.kaspresso-step-content.expanded {
+    display: table-row !important;
+}
+.kaspresso-toggle {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    line-height: 16px;
+    text-align: center;
+    margin-right: 8px;
+    font-weight: bold;
+    color: #666;
+}
+.kaspresso-toggle.expanded::before {
+    content: '▼';
+}
+.kaspresso-toggle.collapsed::before {
+    content: '▶';
+}
+.kaspresso-step-indent {
+    display: inline-block;
+    width: 20px;
+}
+.kaspresso-nested-row {
+    background-color: #fafafa;
+}
+</style>
+<table style="width: 100%; border-collapse: collapse; background-color: white;">
+<thead>
+<tr style="background-color: #4CAF50; color: white;">
+<th style="padding: 12px; text-align: left; border: 1px solid #ddd; width: 60%;">Step</th>
+<th style="padding: 12px; text-align: left; border: 1px solid #ddd; width: 10%;">Status</th>
+<th style="padding: 12px; text-align: left; border: 1px solid #ddd; width: 30%;">Duration</th>
+</tr>
+</thead>
+<tbody id="kaspresso-steps-body">
+"""
+    
+    def stepCounter = [value: 0]
+    html += generateStepRows(steps, stepIdPrefix, stepCounter, "")
+    
+    html += """
+</tbody>
+</table>
+</div>
+<script>
+function toggleStep(stepId) {
+    var toggle = document.getElementById('toggle-' + stepId);
+    if (!toggle) return;
+    var isExpanded = toggle.classList.contains('expanded');
+    var childRows = document.querySelectorAll('[data-parent="' + stepId + '"]');
+    
+    if (isExpanded) {
+        childRows.forEach(function(row) {
+            row.style.display = 'none';
+            collapseAllDescendants(row);
+        });
+        toggle.classList.remove('expanded');
+        toggle.classList.add('collapsed');
+    } else {
+        childRows.forEach(function(row) {
+            row.style.display = 'table-row';
+        });
+        toggle.classList.remove('collapsed');
+        toggle.classList.add('expanded');
+    }
+}
+
+function collapseAllDescendants(parentRow) {
+    var toggle = parentRow.querySelector('[id^="toggle-"]');
+    if (toggle) {
+        var nestedStepId = toggle.id.replace('toggle-', '');
+        var nestedChildren = document.querySelectorAll('[data-parent="' + nestedStepId + '"]');
+        nestedChildren.forEach(function(nested) {
+            nested.style.display = 'none';
+            collapseAllDescendants(nested);
+        });
+        toggle.classList.remove('expanded');
+        toggle.classList.add('collapsed');
+    }
+}
+</script>
+"""
+    return html
+}
+
+// Helper function to generate step rows recursively
+def generateStepRows(steps, stepIdPrefix, stepCounter, prefix = "", parentId = null) {
+    def html = ''
+    def currentIdx = 1
+    steps.each { step ->
+        def stepId = "${stepIdPrefix}-${stepCounter.value++}"
+        def statusColor = step.status == 'SUCCEED' ? '#4CAF50' : (step.status == 'FAILED' ? '#f44336' : '#9e9e9e')
+        def statusText = step.status == 'SUCCEED' ? 'PASSED' : (step.status == 'FAILED' ? 'FAILED' : 'RUNNING')
+        def hasChildren = step.children && step.children.size() > 0
+        def isNested = parentId != null
+        
+        def currentPrefix = prefix == "" ? "${currentIdx}." : "${prefix}${currentIdx}."
+        def indentLevel = prefix.split('\\\\.').length - 1
+        if (prefix == "") indentLevel = 0
+        def indent = indentLevel * 20
+        
+        // Main step row
+        def rowStyle = isNested ? "display: none; border-bottom: 1px solid #ddd;" : "border-bottom: 1px solid #ddd;"
+        html += """
+<tr class="kaspresso-step-row${isNested ? ' kaspresso-nested-row kaspresso-step-content' : ''}" ${hasChildren ? "onclick=\"toggleStep('${stepId}')\"" : ''} ${isNested ? "data-parent=\"${parentId}\"" : ''} style="${rowStyle}">
+<td style="padding: 10px; border: 1px solid #ddd;">
+    <span style="margin-left: ${indent}px;">
+        ${hasChildren ? "<span class=\"kaspresso-toggle collapsed\" id=\"toggle-${stepId}\"></span>" : "<span class=\"kaspresso-step-indent\"></span>"}
+        ${currentPrefix} ${step.name}
+    </span>
+</td>
+<td style="padding: 10px; border: 1px solid #ddd; color: ${statusColor}; font-weight: bold;">${statusText}</td>
+<td style="padding: 10px; border: 1px solid #ddd;">${step.duration}</td>
+</tr>
+"""
+        
+        if (hasChildren) {
+            html += generateStepRows(step.children, stepIdPrefix, stepCounter, currentPrefix, stepId)
+        }
+        currentIdx++
+    }
+    return html
 }
 
 // Make openTestReport run after connectedAndroidTest
