@@ -7,7 +7,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.1.4'
+        classpath 'com.android.tools.build:gradle:8.13.2'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:4.4.1.3373"
 
@@ -51,6 +51,7 @@ task kotlinLintCheck(dependsOn: ['detektCheck']) {
 
 sonarqube {
     properties {
+        property "sonar.gradle.skipCompile", "true"
         property "sonar.host.url", "http://p-sonarqube.nl.eu.abnamro.com:9000"
         property "sonar.projectName", "Android - Reference App"
         property "sonar.projectKey", "com.abnamro.apps.referenceandroid:referenceandroid"

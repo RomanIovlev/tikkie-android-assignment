@@ -37,5 +37,170 @@ dependencies {
     implementation 'com.google.android.material:material:1.2.0'
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test.ext:junit:1.1.1'
+    androidTestImplementation 'androidx.test.ext:junit-ktx:1.1.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
+    androidTestImplementation 'androidx.test:rules:1.5.0'
+    
+    // Kaspresso and Kakao for UI testing
+    androidTestImplementation 'com.kaspersky.android-components:kaspresso:1.5.3'
+    androidTestImplementation 'io.github.kakaocup:kakao:3.0.0'
+}
+
+// Task to open test report after tests complete
+task openTestReport {
+    group = 'verification'
+    description = 'Opens the enhanced test report in browser'
+    dependsOn 'enhanceTestReport'
+    doLast {
+        def reportFile = file("${project.buildDir}/reports/androidTests/connected/debug/index.html")
+        if (reportFile.exists()) {
+            println "Opening test report: ${reportFile.absolutePath}"
+            if (org.gradle.internal.os.OperatingSystem.current().isWindows()) {
+                exec {
+                    commandLine 'cmd', '/c', "start", reportFile.absolutePath
+                }
+            } else if (org.gradle.internal.os.OperatingSystem.current().isMacOsX()) {
+                exec {
+                    commandLine 'open', reportFile.absolutePath
+                }
+            } else {
+                exec {
+                    commandLine 'xdg-open', reportFile.absolutePath
+                }
+            }
+        } else {
+            println ""
+            println "═══════════════════════════════════════════════════════════════"
+            println "⚠️  Test report not found!"
+            println "═══════════════════════════════════════════════════════════════"
+            println ""
+            println "Expected location: ${reportFile.absolutePath}"
+            println ""
+            println "To generate the report, run tests first:"
+            println "  PowerShell: .\\gradlew.bat connectedDebugAndroidTest"
+            println "  CMD:        gradlew.bat connectedDebugAndroidTest"
+            println "  Linux/Mac:  ./gradlew connectedDebugAndroidTest"
+            println ""
+            println "Or run tests from Android Studio, then run this task again."
+            println ""
+        }
+    }
+}
+
+// Combined task: enhance report and open it
+task viewTestReport {
+    group = 'verification'
+    description = 'Enhances test report with Kaspresso steps and opens it in browser'
+    dependsOn 'enhanceTestReport', 'openTestReport'
+}
+
+// Ensure tasks are visible in Android Studio
+tasks.whenTaskAdded { task ->
+    if (task.name in ['enhanceTestReport', 'openTestReport', 'viewTestReport']) {
+        task.group = 'verification'
+    }
+}
+
+// Task to enhance HTML report with Kaspresso step information
+task enhanceTestReport {
+    group = 'verification'
+    description = 'Extracts Kaspresso steps from logs and adds them to HTML report'
+    doLast {
+        def reportDir = file("${project.buildDir}/reports/androidTests/connected/debug")
+        def testResultsDir = file("${project.buildDir}/outputs/androidTest-results/connected/debug")
+        
+        // Find logcat files
+        testResultsDir.eachDir { deviceDir ->
+            deviceDir.eachFileMatch(~/logcat-.*\.txt/) { logcatFile ->
+                def logcatContent = logcatFile.text
+                
+                // Extract step information
+                def steps = []
+                def currentStep = null
+                logcatContent.eachLine { line ->
+                    if (line.contains('TEST STEP:')) {
+                        def stepMatch = line =~ /TEST STEP: "(.+?)"/
+                        if (stepMatch) {
+                            currentStep = [name: stepMatch[0][1], status: 'RUNNING', duration: '']
+                        }
+                    }
+                    if (currentStep && line.contains('SUCCEED')) {
+                        def succeedMatch = line =~ /SUCCEED\. It took (.+?)\./
+                        if (succeedMatch) {
+                            currentStep.status = 'SUCCEED'
+                            currentStep.duration = succeedMatch[0][1]
+                            steps.add(currentStep)
+                            currentStep = null
+                        }
+                    }
+                    if (currentStep && line.contains('FAILED')) {
+                        def failedMatch = line =~ /FAILED\. It took (.+?)\./
+                        if (failedMatch) {
+                            currentStep.status = 'FAILED'
+                            currentStep.duration = failedMatch[0][1]
+                            steps.add(currentStep)
+                            currentStep = null
+                        }
+                    }
+                }
+                
+                // Find corresponding HTML file and enhance it
+                if (steps.size() > 0) {
+                    // Extract class name from logcat filename: logcat-com.abnamro.apps.referenceandroid.MainActivityTest-testMainScreenIsDisplayed.txt
+                    def filenameMatch = logcatFile.name =~ /logcat-(.+?)-(.+?)\.txt/
+                    if (filenameMatch) {
+                        def className = filenameMatch[0][1]
+                        def htmlFile = new File(reportDir, "${className}.html")
+                        
+                        if (htmlFile.exists()) {
+                            def htmlContent = htmlFile.text
+                            
+                            // Add steps section before footer
+                            def stepsHtml = """
+<div id="kaspresso-steps" style="margin: 20px 0; padding: 20px; background-color: #f9f9f9; border-radius: 5px;">
+<h2 style="color: #333; margin-bottom: 15px;">Kaspresso Test Steps</h2>
+<table style="width: 100%; border-collapse: collapse; background-color: white;">
+<thead>
+<tr style="background-color: #4CAF50; color: white;">
+<th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Step</th>
+<th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Status</th>
+<th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Duration</th>
+</tr>
+</thead>
+<tbody>
+"""
+                            steps.each { step ->
+                                def statusColor = step.status == 'SUCCEED' ? '#4CAF50' : '#f44336'
+                                stepsHtml += """
+<tr>
+<td style="padding: 10px; border: 1px solid #ddd;">${step.name}</td>
+<td style="padding: 10px; border: 1px solid #ddd; color: ${statusColor}; font-weight: bold;">${step.status == 'SUCCEED' ? 'PASSED' : 'FAILED'}</td>
+<td style="padding: 10px; border: 1px solid #ddd;">${step.duration}</td>
+</tr>
+"""
+                            }
+                            stepsHtml += """
+</tbody>
+</table>
+</div>
+"""
+                            
+                            // Insert before footer
+                            htmlContent = htmlContent.replace('<div id="footer">', stepsHtml + '<div id="footer">')
+                            htmlFile.text = htmlContent
+                            println "Enhanced ${htmlFile.name} with ${steps.size()} Kaspresso steps"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Make openTestReport run after connectedAndroidTest
+afterEvaluate {
+    tasks.matching { it.name.startsWith('connected') && it.name.endsWith('AndroidTest') }.configureEach {
+        finalizedBy 'enhanceTestReport'
+        finalizedBy 'openTestReport'
+    }
 }
