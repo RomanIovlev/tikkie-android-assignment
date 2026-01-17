@@ -1,7 +1,6 @@
 package com.abnamro.apps.referenceandroid
 
 import com.abnamro.apps.referenceandroid.screen.HelloWorldScreen
-import com.abnamro.apps.referenceandroid.screen.showOverflowMenu
 import org.junit.Test
 
 class SmokeTests : TestSuite() {
@@ -18,8 +17,23 @@ class SmokeTests : TestSuite() {
                 step("Email button is visible") {
                     emailButton.isDisplayed()
                 }
-                // pageTitle.showOverflowMenu()
-                // settingsToast.hasText("Settings")
+                step("Overflow menu button is visible") {
+                    overflowMenuButton.isDisplayed()
+                }
+            }
+        }
+    }
+    @Test
+    fun settingsPopupWorks() = run {
+        step("Verify Settings popup") {
+            HelloWorldScreen {
+                showOverflowMenu()
+                step("Settings menu item is visible") {
+                    settingsItem {
+                        inRoot { isPlatformPopup() }
+                        isDisplayed()
+                    }
+                }
             }
         }
     }
