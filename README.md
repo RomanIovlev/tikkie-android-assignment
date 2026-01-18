@@ -9,7 +9,7 @@
 
 ### Application
 
-* **Language**: Kotlin 1.9.22
+* **Language**: Kotlin 2.2.0
 * **Android SDK**: 34
 * **UI Framework**: Material Design Components, AppCompat, ConstraintLayout
 * **Build Tool**: Gradle/Android Gradle Plugin 8.13.2
@@ -17,12 +17,11 @@
 ### Testing
 
 * **UI Testing Framework**: Kaspresso 1.5.3 (with advanced builder for detailed logging and screenshots)
-
-* **Page Object Pattern**: Kakao 3.0.0
+* **Page Object Pattern**: Kakao 3.7.0
 * **Test Runner**: AndroidJUnitRunner
-* **Assertions**: Espresso Core 3.2.0
-* **Test Framework**: JUnit 4.12, AndroidX Test Extensions
-* **Report Generation**: Custom Kaspresso HTML Report with steps
+* **Assertions**: Espresso Core 3.7.0
+* **Test Framework**: JUnit 4.13.2, AndroidX Test Extensions
+* **Report Generation**: Custom Kaspresso HTML Report with steps (buildSrc/src/main/groovy/TestReporter.groovy)
 
 ## Run tests in Android Studio
 

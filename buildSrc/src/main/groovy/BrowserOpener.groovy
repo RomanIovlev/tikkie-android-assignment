@@ -1,20 +1,13 @@
-/**
- * Utility class for opening files in the default browser
- */
+import org.gradle.internal.os.OperatingSystem
+
 class BrowserOpener {
-    
-    /**
-     * Opens a file in the default browser
-     * @param file The file to open
-     * @return true if successful, false otherwise
-     */
     static boolean openInBrowser(File file) {
         if (!file.exists()) {
             return false
         }
         
         try {
-            def os = org.gradle.internal.os.OperatingSystem.current()
+            def os = OperatingSystem.current()
             def command
             
             if (os.isWindows()) {
@@ -33,11 +26,7 @@ class BrowserOpener {
             return false
         }
     }
-    
-    /**
-     * Prints instructions for manually opening the report
-     * @param reportFile The report file path
-     */
+
     static void printManualOpenInstructions(File reportFile) {
         println ""
         println "═══════════════════════════════════════════════════════════════"

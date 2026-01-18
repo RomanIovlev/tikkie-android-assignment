@@ -55,17 +55,17 @@ sonarqube {
         property "sonar.report.export.path", "sonar-report.json"
         property "sonar.projectVersion","1.0.0"
 
-        //        when debugging use the q server
-        //        property "sonar.host.url", "http://q-sonarqube.nl.eu.abnamro.com:9000"
-        //        property "sonar.login","[DONOTCOMMIT]"
-        //        property "sonar.password","[DONOTCOMMIT]"
+//        when debugging use the q server
+//        property "sonar.host.url", "http://q-sonarqube.nl.eu.abnamro.com:9000"
+//        property "sonar.login","[DONOTCOMMIT]"
+//        property "sonar.password","[DONOTCOMMIT]"
 
         property "detekt.sonar.kotlin.config.path","support/default-detekt-config.yml"
         property "sonar.findbugs.excludesFilters","../support/findbugs-filter.xml"
 
-        //        for coverage report
-        //        property "sonar.java.coveragePlugin", "jacoco"
-        //        property "sonar.jacoco.reportPaths","app/build/jacoco/testDevelopDebugUnitTest.exec"
+//        for coverage report
+//        property "sonar.java.coveragePlugin", "jacoco"
+//        property "sonar.jacoco.reportPaths","app/build/jacoco/testDevelopDebugUnitTest.exec"
     }
 }
 
