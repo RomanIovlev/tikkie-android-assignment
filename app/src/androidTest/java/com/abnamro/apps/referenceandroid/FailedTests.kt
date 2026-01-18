@@ -11,7 +11,7 @@ class FailedTests : TestSuite() {
                 step("Title equals 'ReferenceAndroid'") {
                     pageTitle.hasTitle("ReferenceAndroid")
                 }
-                step("Main text is 'Hello World!'") {
+                step("Should Fail Validation: Main text is 'Hello World!'") {
                     mainText.hasText("Another World")
                 }
                 step("Email button is visible") {

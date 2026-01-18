@@ -230,12 +230,36 @@ class TestReporter {
                 def errorIndent = indentLevel * 20
                 def errorStepId = "${stepIdPrefix}-error-${stepCounter.value++}"
                 def escapedError = step.error.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;')
+                
+                // Extract error summary (Expected/Got) or use first line if no summary
+                def errorSummary = step.errorSummary ?: ''
+                if (!errorSummary && step.error) {
+                    // Fallback: use first line of error if no summary extracted
+                    def firstLine = step.error.readLines().find { it.trim() } ?: ''
+                    if (firstLine.length() > 100) {
+                        errorSummary = firstLine.substring(0, 100) + '...'
+                    } else {
+                        errorSummary = firstLine
+                    }
+                }
+                def escapedSummary = errorSummary.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;')
+                
+                // Error summary row (always visible, clickable to expand/collapse full details)
+                def errorRowStyle = isNested ? "display: none; border-bottom: 1px solid #ddd;" : "border-bottom: 1px solid #ddd;"
                 html += """
-<tr class="kaspresso-step-row kaspresso-nested-row kaspresso-step-content" data-parent="${stepId}" data-step-id="${errorStepId}" style="display: none; border-bottom: 1px solid #ddd; cursor: pointer;" onclick="toggleScreenshot('${errorStepId}')">
+<tr class="kaspresso-step-row${isNested ? ' kaspresso-nested-row kaspresso-step-content' : ''}" ${isNested ? "data-parent=\"${parentId}\"" : ''} style="${errorRowStyle}background-color: #ffebee; cursor: pointer;" onclick="toggleScreenshot('error-${errorStepId}')">
+<td colspan="3" style="padding: 8px; border: 1px solid #ddd;">
+    <div style="margin-left: ${errorIndent}px; display: flex; align-items: flex-start;">
+        <span class="kaspresso-toggle collapsed" id="toggle-error-${errorStepId}" style="margin-right: 8px; margin-top: 2px;"></span>
+        <div style="flex: 1;">
+            <pre style="margin: 0; padding: 0; background-color: transparent; border: none; font-size: 12px; font-family: 'Courier New', monospace; white-space: pre-wrap; word-wrap: break-word; color: #333;">${escapedSummary}</pre>
+        </div>
+    </div>
+</td>
 </tr>
-<tr class="kaspresso-nested-row kaspresso-step-content" data-parent="${stepId}" id="screenshot-content-${errorStepId}" style="display: none; border-bottom: 1px solid #ddd;">
+<tr class="kaspresso-nested-row kaspresso-step-content" id="screenshot-content-error-${errorStepId}" style="display: none; border-bottom: 1px solid #ddd;">
 <td colspan="3" style="padding: 10px; border: 1px solid #ddd; background-color: #ffebee;">
-    <div style="margin-left: ${errorIndent + 20}px; max-height: 500px; overflow: auto;">
+    <div style="margin-left: ${errorIndent + 40}px; max-height: 500px; overflow: auto;">
         <div style="font-weight: bold; color: #c62828; margin-bottom: 8px;">Error Details:</div>
         <pre style="background-color: #fff; padding: 10px; border: 1px solid #ddd; border-radius: 4px; overflow-x: auto; font-size: 12px; font-family: 'Courier New', monospace; white-space: pre-wrap; word-wrap: break-word;">${escapedError}</pre>
     </div>

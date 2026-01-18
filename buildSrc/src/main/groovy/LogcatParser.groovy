@@ -50,6 +50,7 @@ class LogcatParser {
                         duration: '',
                         screenshot: '',
                         error: '',
+                        errorSummary: '',
                         children: []
                     ]
                     
@@ -78,7 +79,9 @@ class LogcatParser {
             else if (capturingError && currentFailedStep != null) {
                 if (line.contains('TEST STEP:') && !line.contains('FAILED') && !line.contains('SUCCEED')) {
                     if (errorBuffer.size() > 0) {
-                        currentFailedStep.error = errorBuffer.join('\n').trim()
+                        def fullError = errorBuffer.join('\n').trim()
+                        currentFailedStep.error = fullError
+                        currentFailedStep.errorSummary = extractErrorSummary(fullError)
                     }
                     capturingError = false
                     currentFailedStep = null
@@ -98,7 +101,9 @@ class LogcatParser {
                 }
                 else if (errorBuffer.size() > 0) {
                     if (errorBuffer.size() > 50) {
-                        currentFailedStep.error = errorBuffer.join('\n').trim()
+                        def fullError = errorBuffer.join('\n').trim()
+                        currentFailedStep.error = fullError
+                        currentFailedStep.errorSummary = extractErrorSummary(fullError)
                         capturingError = false
                         currentFailedStep = null
                         errorBuffer = []
@@ -113,7 +118,9 @@ class LogcatParser {
                                  !nextLine.contains('Expected:') &&
                                  !nextLine.contains('Got:') &&
                                  !nextLine.contains('View Details:'))) {
-                                currentFailedStep.error = errorBuffer.join('\n').trim()
+                                def fullError = errorBuffer.join('\n').trim()
+                                currentFailedStep.error = fullError
+                                currentFailedStep.errorSummary = extractErrorSummary(fullError)
                                 capturingError = false
                                 currentFailedStep = null
                                 errorBuffer = []
@@ -121,7 +128,9 @@ class LogcatParser {
                                 errorBuffer.add('')
                             }
                         } else {
-                            currentFailedStep.error = errorBuffer.join('\n').trim()
+                            def fullError = errorBuffer.join('\n').trim()
+                            currentFailedStep.error = fullError
+                            currentFailedStep.errorSummary = extractErrorSummary(fullError)
                             capturingError = false
                             currentFailedStep = null
                             errorBuffer = []
@@ -138,8 +147,68 @@ class LogcatParser {
             }
         }
         if (currentFailedStep != null && errorBuffer.size() > 0) {
-            currentFailedStep.error = errorBuffer.join('\n').trim()
+            def fullError = errorBuffer.join('\n').trim()
+            currentFailedStep.error = fullError
+            currentFailedStep.errorSummary = extractErrorSummary(fullError)
         }
         return allSteps
+    }
+    
+    /**
+     * Extracts error summary (Expected and Got lines) from full error text
+     * @param errorText Full error text
+     * @return Summary string with Expected and Got lines, or empty string if not found
+     */
+    private static String extractErrorSummary(String errorText) {
+        if (!errorText) return ''
+        
+        def lines = errorText.readLines()
+        def expectedLine = ''
+        def gotLine = ''
+        
+        lines.each { line ->
+            // Look for "E TestRunner: Expected:" pattern
+            // Match: "E TestRunner: Expected: ..." or "E  TestRunner: Expected: ..." (with variable spaces)
+            if (line.contains('E') && line.contains('TestRunner:') && line.contains('Expected:')) {
+                // Extract everything after "Expected:" and trim multiple spaces
+                def match = line =~ /E\s+TestRunner:\s+Expected:\s*(.+)$/
+                if (match) {
+                    expectedLine = match[0][1].replaceAll(/\s+/, ' ').trim()
+                } else {
+                    // Try alternative pattern without strict spacing
+                    def altMatch = line =~ /.*Expected:\s*(.+)$/
+                    if (altMatch) {
+                        expectedLine = altMatch[0][1].replaceAll(/\s+/, ' ').trim()
+                    }
+                }
+            }
+            // Look for "E TestRunner:      Got:" pattern (with multiple spaces)
+            else if (line.contains('E') && line.contains('TestRunner:') && line.contains('Got:')) {
+                // Extract everything after "Got:" and trim multiple spaces
+                def match = line =~ /E\s+TestRunner:\s+Got:\s*(.+)$/
+                if (match) {
+                    gotLine = match[0][1].replaceAll(/\s+/, ' ').trim()
+                } else {
+                    // Try alternative pattern without strict spacing
+                    def altMatch = line =~ /.*Got:\s*(.+)$/
+                    if (altMatch) {
+                        gotLine = altMatch[0][1].replaceAll(/\s+/, ' ').trim()
+                    }
+                }
+            }
+        }
+        
+        if (expectedLine || gotLine) {
+            def summary = []
+            if (expectedLine) {
+                summary.add("Expected: ${expectedLine}")
+            }
+            if (gotLine) {
+                summary.add("Got: ${gotLine}")
+            }
+            return summary.join('\n')
+        }
+        
+        return ''
     }
 }
