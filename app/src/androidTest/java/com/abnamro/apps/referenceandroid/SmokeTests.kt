@@ -28,7 +28,7 @@ class SmokeTests : TestSuite() {
     fun contextMenuTest() = run("Context menu Test") {
         HelloWorldScreen {
             showOverflowMenu()
-            screenStep ("Verify context menu item is 'Settings'") {
+            step ("Verify context menu item is 'Settings'") {
                 settingItem {
                     inRoot { isPlatformPopup() }
                     isDisplayed()
