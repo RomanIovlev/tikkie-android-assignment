@@ -1,7 +1,5 @@
-// Top-level build file where you can add configuration options common to all sub-projects/modules.
-
 buildscript {
-    ext.kotlin_version = '1.9.22'
+    ext.kotlin_version = '2.2.0'
     repositories {
         google()
         mavenCentral()
@@ -9,17 +7,13 @@ buildscript {
     dependencies {
         classpath 'com.android.tools.build:gradle:8.13.2'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:4.4.1.3373"
-
-
-        // NOTE: Do not place your application dependencies here; they belong
-        // in the individual module build.gradle files
+        classpath "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:7.2.2.6593"
     }
 }
 
 plugins {
-    id "io.gitlab.arturbosch.detekt" version "1.23.1"
-    id "org.sonarqube" version "4.4.1.3373"
+    id "io.gitlab.arturbosch.detekt" version "1.23.8"
+    id "org.sonarqube" version "7.2.2.6593"
 
 }
 
@@ -30,7 +24,7 @@ allprojects {
     }
 }
 
-task clean(type: Delete) {
+tasks.register('clean', Delete) {
     delete rootProject.buildDir
 }
 
@@ -45,7 +39,8 @@ detekt {
     parallel = true
 }
 
-task kotlinLintCheck(dependsOn: ['detektCheck']) {
+tasks.register('kotlinLintCheck') {
+    dependsOn['detektCheck']
     group 'verification'
 }
 
@@ -60,17 +55,8 @@ sonarqube {
         property "sonar.report.export.path", "sonar-report.json"
         property "sonar.projectVersion","1.0.0"
 
-//        when debugging use the q server
-//        property "sonar.host.url", "http://q-sonarqube.nl.eu.abnamro.com:9000"
-//        property "sonar.login","[DONOTCOMMIT]"
-//        property "sonar.password","[DONOTCOMMIT]"
-
         property "detekt.sonar.kotlin.config.path","support/default-detekt-config.yml"
         property "sonar.findbugs.excludesFilters","../support/findbugs-filter.xml"
-
-//        for coverage report
-//        property "sonar.java.coveragePlugin", "jacoco"
-//        property "sonar.jacoco.reportPaths","app/build/jacoco/testDevelopDebugUnitTest.exec"
     }
 }
 

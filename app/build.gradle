@@ -20,54 +20,64 @@ android {
     }
     kotlinOptions {
         jvmTarget = '17'
-        freeCompilerArgs += ["-Xcontext-receivers"]
     }
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+    
+    testOptions {
+        execution 'ANDROIDX_TEST_ORCHESTRATOR'
+        animationsDisabled = true
+   }
 }
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    implementation 'androidx.appcompat:appcompat:1.2.0'
-    implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
-    implementation 'com.google.android.material:material:1.2.0'
-    testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.1'
-    androidTestImplementation 'androidx.test.ext:junit-ktx:1.1.1'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
-    androidTestImplementation 'androidx.test:rules:1.5.0'
+    implementation 'androidx.appcompat:appcompat:1.7.1'
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
+    implementation 'com.google.android.material:material:1.13.0'
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.3.0'
+    androidTestImplementation 'androidx.test.ext:junit-ktx:1.3.0'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.7.0'
+    androidTestImplementation 'androidx.test:rules:1.7.0'
     
     // Kaspresso and Kakao for UI testing
-    androidTestImplementation 'com.kaspersky.android-components:kaspresso:1.5.3'
-    androidTestImplementation 'io.github.kakaocup:kakao:3.0.0'
+    androidTestImplementation 'com.kaspersky.android-components:kaspresso:1.6.0'
+    androidTestImplementation 'io.github.kakaocup:kakao:3.7.0'
+    
+    // Android Test Orchestrator for parallel test execution
+    androidTestUtil 'androidx.test:orchestrator:1.6.1'
 }
 
 // Task to open test report after tests complete
-task openTestReport {
+tasks.register('openTestReport') {
     group = 'verification'
     description = 'Opens the enhanced test report in browser'
     dependsOn 'enhanceTestReport'
     doLast {
-        def reportFile = file("${project.buildDir}/reports/androidTests/connected/debug/index.html")
+        def reportFile = file("${layout.buildDirectory.get()}/reports/androidTests/connected/debug/index.html")
         if (reportFile.exists()) {
             println "Opening test report: ${reportFile.absolutePath}"
-            if (org.gradle.internal.os.OperatingSystem.current().isWindows()) {
-                exec {
-                    commandLine 'cmd', '/c', "start", reportFile.absolutePath
+            try {
+                def os = org.gradle.internal.os.OperatingSystem.current()
+                def command
+                if (os.isWindows()) {
+                    command = ['cmd', '/c', 'start', '', reportFile.absolutePath]
+                } else if (os.isMacOsX()) {
+                    command = ['open', reportFile.absolutePath]
+                } else {
+                    command = ['xdg-open', reportFile.absolutePath]
                 }
-            } else if (org.gradle.internal.os.OperatingSystem.current().isMacOsX()) {
-                exec {
-                    commandLine 'open', reportFile.absolutePath
-                }
-            } else {
-                exec {
-                    commandLine 'xdg-open', reportFile.absolutePath
-                }
+                def process = new ProcessBuilder(command).start()
+                process.waitFor()
+            } catch (Exception e) {
+                println "Warning: Could not open report automatically: ${e.message}"
+                println "Please open manually: ${reportFile.absolutePath}"
             }
         } else {
             println ""
@@ -89,39 +99,39 @@ task openTestReport {
 }
 
 // Combined task: enhance report and open it
-task viewTestReport {
+tasks.register('viewTestReport') {
     group = 'verification'
     description = 'Enhances test report with Kaspresso steps and opens it in browser'
     dependsOn 'enhanceTestReport', 'openTestReport'
 }
 
 // Ensure tasks are visible in Android Studio
-tasks.whenTaskAdded { task ->
+tasks.configureEach { task ->
     if (task.name in ['enhanceTestReport', 'openTestReport', 'viewTestReport']) {
         task.group = 'verification'
     }
 }
 
 // Task to enhance HTML report with Kaspresso step information
-task enhanceTestReport {
+tasks.register('enhanceTestReport') {
     group = 'verification'
     description = 'Extracts Kaspresso steps from logs and adds them to HTML report'
     doLast {
-        def reportDir = file("${project.buildDir}/reports/androidTests/connected/debug")
-        def testResultsDir = file("${project.buildDir}/outputs/androidTest-results/connected/debug")
-        
+        def reportDir = file("${layout.buildDirectory.get()}/reports/androidTests/connected/debug")
+        def testResultsDir = file("${layout.buildDirectory.get()}/outputs/androidTest-results/connected/debug")
+
         // Map to collect all tests grouped by class: className -> [testMethodName -> steps]
         def testsByClass = [:]
-        
+
         // Find logcat files and collect all test data
         testResultsDir.eachDir { deviceDir ->
             deviceDir.eachFileMatch(~/logcat-.*\.txt/) { logcatFile ->
                 def logcatContent = logcatFile.text
-                
+
                 // Extract step information with hierarchy tracking
                 def stepStack = []  // Stack to track nested steps
                 def allSteps = []   // Flat list of all steps with hierarchy info
-                
+
                 logcatContent.eachLine { line ->
                     // Match start of step - more specific regex to avoid matching SUCCEED/FAILED lines
                     if (line.contains('TEST STEP:') && !line.contains('SUCCEED') && !line.contains('FAILED') && !line.contains('finished')) {
@@ -130,12 +140,13 @@ task enhanceTestReport {
                         if (stepMatch) {
                             def stepName = stepMatch[0][1]
                             def step = [
-                                name: stepName,
-                                status: 'RUNNING',
-                                duration: '',
-                                children: []
+                                    name      : stepName,
+                                    status    : 'RUNNING',
+                                    duration  : '',
+                                    screenshot: '',
+                                    children  : []
                             ]
-                            
+
                             if (!stepStack.isEmpty()) {
                                 stepStack.last().children.add(step)
                             } else {
@@ -143,7 +154,7 @@ task enhanceTestReport {
                             }
                             stepStack.push(step)
                         }
-                    } 
+                    }
                     // Match end of step
                     else if (line.contains('SUCCEED') || line.contains('FAILED')) {
                         def status = line.contains('SUCCEED') ? 'SUCCEED' : 'FAILED'
@@ -154,18 +165,25 @@ task enhanceTestReport {
                             currentStep.duration = durationMatch[0][1]
                         }
                     }
+                    // Match screenshot logs - look for screenshot file paths in log
+                    else if (line.toLowerCase().contains('screenshot') && (line.contains('.png') || line.contains('.jpg') || line.contains('.jpeg'))) {
+                        def pathMatch = line =~ /([\/\\].*?\.(png|jpg|jpeg))/
+                        if (pathMatch && !stepStack.isEmpty()) {
+                            stepStack.last().screenshot = pathMatch[0][1]
+                        }
+                    }
                 }
-                
+
                 // Deduplicate steps (same name at same level)
                 def deduplicatedSteps = deduplicateSteps(allSteps)
-                
+
                 // Store test data grouped by class
                 if (deduplicatedSteps.size() > 0) {
                     def filenameMatch = logcatFile.name =~ /logcat-(.+?)-(.+?)\.txt/
                     if (filenameMatch) {
                         def className = filenameMatch[0][1]
                         def testMethodName = filenameMatch[0][2]
-                        
+
                         if (!testsByClass.containsKey(className)) {
                             testsByClass[className] = [:]
                         }
@@ -174,24 +192,45 @@ task enhanceTestReport {
                 }
             }
         }
-        
+
         // Helper function to format method name to readable format
         def formatMethodName = { methodName ->
             // Convert camelCase to "Title Case"
             // e.g., "contextMenuTest" -> "Context Menu Test"
             // e.g., "runAppSuccessfulTest" -> "Run App Successful Test"
             return methodName.replaceAll(/([a-z])([A-Z])/, '$1 $2')
-                           .split(' ')
-                           .collect { word -> word.capitalize() }
-                           .join(' ')
+                    .split(' ')
+                    .collect { word -> word.capitalize() }
+                    .join(' ')
         }
-        
+
         // Generate unified HTML for each test class
         testsByClass.each { className, tests ->
             def htmlFile = new File(reportDir, "${className}.html")
             if (htmlFile.exists()) {
                 def htmlContent = htmlFile.text
-                
+
+                // Extract test durations from the HTML report
+                // Look for test results in format: testMethodName passed (X.XXXs) or similar patterns
+                def testDurations = [:]
+                // Try multiple patterns to match different HTML report formats
+                def patterns = [
+                        /(\w+)\s+passed\s+\((\d+\.?\d*)s\)/,  // "contextMenuTest passed (12.885s)"
+                        />(\w+)<\/td>\s*<td[^>]*>passed[^<]*<\/td>\s*<td[^>]*>\((\d+\.?\d*)s\)/,  // HTML table format
+                        /"(\w+)"[^>]*>passed[^<]*\((\d+\.?\d*)s\)/  // JSON or other formats
+                ]
+
+                patterns.each { pattern ->
+                    def matcher = htmlContent =~ pattern
+                    matcher.each { match ->
+                        def methodName = match[1]
+                        def durationSeconds = match[2] as double
+                        // Convert seconds to milliseconds
+                        def durationMillis = (durationSeconds * 1000) as int
+                        testDurations[methodName] = durationMillis
+                    }
+                }
+
                 // Build unified test structure: test methods as top level, steps as children
                 def unifiedTests = []
                 tests.each { testMethodName, steps ->
@@ -199,24 +238,24 @@ task enhanceTestReport {
                     def testName = formatMethodName(testMethodName)
                     def actualSteps = steps
                     def testDuration = ''
-                    
+
                     if (steps.size() > 0) {
                         def firstStep = steps[0]
                         def firstStepName = firstStep.name
-                        
+
                         // Check if first step looks like a test name from run()
                         // Test names typically: contain "Test", have spaces, start with capital
                         // Step names typically: are action verbs (open, verify, check, etc.)
                         def containsTest = firstStepName.toLowerCase().contains('test')
-                        def looksLikeTestName = firstStepName != testMethodName && 
-                                              (containsTest || 
-                                               (firstStepName.contains(' ') && 
+                        def looksLikeTestName = firstStepName != testMethodName &&
+                                (containsTest ||
+                                        (firstStepName.contains(' ') &&
                                                 firstStepName.matches(/^[A-Z][a-zA-Z\s]+$/))) &&
-                                              !firstStepName.toLowerCase().startsWith('open') &&
-                                              !firstStepName.toLowerCase().startsWith('verify') &&
-                                              !firstStepName.toLowerCase().startsWith('check') &&
-                                              !firstStepName.toLowerCase().startsWith('click')
-                        
+                                !firstStepName.toLowerCase().startsWith('open') &&
+                                !firstStepName.toLowerCase().startsWith('verify') &&
+                                !firstStepName.toLowerCase().startsWith('check') &&
+                                !firstStepName.toLowerCase().startsWith('click')
+
                         // If first step has children AND looks like a test name, use it
                         if (firstStep.children && firstStep.children.size() > 0 && looksLikeTestName) {
                             // First step is the test name from run(), use it as test name
@@ -224,7 +263,7 @@ task enhanceTestReport {
                             testName = firstStepName
                             actualSteps = firstStep.children
                             testDuration = firstStep.duration ?: ''
-                        } 
+                        }
                         // If first step looks like a test name but has no children, still use it
                         else if (looksLikeTestName) {
                             testName = firstStepName
@@ -233,42 +272,129 @@ task enhanceTestReport {
                         }
                         // Otherwise, use formatted method name (better than using a step name)
                     }
-                    
-                    // Calculate overall test status and duration
-                    def testStatus = actualSteps.every { it.status == 'SUCCEED' } ? 'SUCCEED' : 
-                                     actualSteps.any { it.status == 'FAILED' } ? 'FAILED' : 'RUNNING'
-                    
-                    // Always calculate total duration recursively from all steps and substeps
-                    // This ensures we get the full test duration even if the top-level step duration is missing
-                    def calculatedDuration = calculateTotalDuration(actualSteps)
-                    
-                    // Use calculated duration if available, otherwise try to use the top-level step duration
-                    if (calculatedDuration) {
-                        testDuration = calculatedDuration
-                    } else if (testDuration) {
-                        // Format the duration if it's a string
-                        def millis = parseDurationToMillis(testDuration)
-                        testDuration = formatDuration(millis)
+
+                    // Calculate overall test status
+                    def testStatus = actualSteps.every { it.status == 'SUCCEED' } ? 'SUCCEED' :
+                            actualSteps.any { it.status == 'FAILED' } ? 'FAILED' : 'RUNNING'
+
+                    // Use duration from test report if available, otherwise calculate from steps
+                    if (testDurations.containsKey(testMethodName)) {
+                        // Use the duration from the test report (e.g., "12.885s" -> 12885 ms)
+                        def reportDurationMillis = testDurations[testMethodName]
+                        testDuration = TestReporter.formatDuration(reportDurationMillis)
+                    } else {
+                        // Fallback: calculate total duration recursively from all steps and substeps
+                        def calculatedDuration = calculateTotalDuration(actualSteps)
+                        if (calculatedDuration) {
+                            testDuration = calculatedDuration
+                        } else if (testDuration) {
+                            // Format the duration if it's a string
+                            def millis = TestReporter.parseDurationToMillis(testDuration)
+                            testDuration = TestReporter.formatDuration(millis)
+                        }
                     }
-                    
+
                     def testNode = [
-                        name: testName,
-                        status: testStatus,
-                        duration: testDuration,
-                        children: actualSteps
+                            name    : testName,
+                            status  : testStatus,
+                            duration: testDuration,
+                            children: actualSteps
                     ]
                     unifiedTests.add(testNode)
                 }
-                
+
+                // Copy screenshots to report directory before generating HTML
+                def screenshotsDir = new File(reportDir, "screenshots")
+                screenshotsDir.mkdirs()
+
+                // Find adb executable
+                def findAdb = {
+                    def androidHome = System.getenv("ANDROID_HOME") ?: System.getenv("ANDROID_SDK_ROOT")
+                    if (androidHome) {
+                        def adbPath = new File(androidHome, "platform-tools/adb${org.gradle.internal.os.OperatingSystem.current().isWindows() ? '.exe' : ''}")
+                        if (adbPath.exists()) {
+                            return adbPath.absolutePath
+                        }
+                    }
+                    // Try common locations
+                    def commonPaths = [
+                            "${System.getProperty('user.home')}/AppData/Local/Android/Sdk/platform-tools/adb.exe",
+                            "${System.getProperty('user.home')}/Library/Android/sdk/platform-tools/adb",
+                            "${System.getProperty('user.home')}/Android/Sdk/platform-tools/adb"
+                    ]
+                    for (path in commonPaths) {
+                        def adbFile = new File(path)
+                        if (adbFile.exists()) {
+                            return adbFile.absolutePath
+                        }
+                    }
+                    return "adb" // Fallback to PATH
+                }
+                def adbPath = findAdb()
+
+                def copyScreenshots
+                copyScreenshots = { steps ->
+                    steps.each { step ->
+                        if (step.screenshot && step.screenshot != '') {
+                            try {
+                                def screenshotPath = step.screenshot
+                                // Extract filename from path (handle both / and \ separators)
+                                def screenshotFileName
+                                if (screenshotPath.contains('/')) {
+                                    screenshotFileName = screenshotPath.substring(screenshotPath.lastIndexOf('/') + 1)
+                                } else if (screenshotPath.contains('\\')) {
+                                    screenshotFileName = screenshotPath.substring(screenshotPath.lastIndexOf('\\') + 1)
+                                } else {
+                                    screenshotFileName = screenshotPath
+                                }
+                                def targetFile = new File(screenshotsDir, screenshotFileName)
+
+                                // Check if screenshot is on device (starts with /storage or /sdcard)
+                                if (screenshotPath.startsWith('/storage') || screenshotPath.startsWith('/sdcard')) {
+                                    // Use adb pull to copy from device
+                                    def adbCommand = "\"${adbPath}\" pull \"${screenshotPath}\" \"${targetFile.absolutePath}\""
+                                    def process = adbCommand.execute()
+                                    process.waitFor()
+                                    if (process.exitValue() == 0 && targetFile.exists()) {
+                                        // Update step.screenshot to the copied file path for HTML reference
+                                        step.screenshot = screenshotFileName
+                                    } else {
+                                        println "Warning: Failed to pull screenshot ${screenshotPath}"
+                                    }
+                                } else {
+                                    // Local file path
+                                    def sourceFile = new File(screenshotPath)
+                                    if (sourceFile.exists()) {
+                                        sourceFile.withInputStream { input ->
+                                            targetFile.withOutputStream { output ->
+                                                output << input
+                                            }
+                                        }
+                                        // Update step.screenshot to the copied file path for HTML reference
+                                        step.screenshot = screenshotFileName
+                                    }
+                                }
+                            } catch (Exception e) {
+                                // Ignore screenshot copy errors
+                                println "Warning: Error copying screenshot ${step.screenshot}: ${e.message}"
+                            }
+                        }
+                        if (step.children && step.children.size() > 0) {
+                            copyScreenshots(step.children)
+                        }
+                    }
+                }
+                copyScreenshots(unifiedTests)
+
                 // Generate unified HTML table
                 def containerId = "kaspresso-steps-unified"
-                def stepsHtml = generateUnifiedStepsHtml(unifiedTests, containerId)
-                
+                def stepsHtml = TestReporter.generateUnifiedStepsHtml(unifiedTests, containerId)
+
                 // Remove any existing Kaspresso steps sections and insert new unified one
                 htmlContent = htmlContent.replaceAll(/(?s)<div id="kaspresso-steps[^"]*">.*?<\/div>\s*<script>.*?<\/script>/, '')
                 htmlContent = htmlContent.replace('<div id="footer">', stepsHtml + '<div id="footer">')
                 htmlFile.text = htmlContent
-                
+
                 def totalSteps = unifiedTests.sum { countAllSteps([it]) }
                 println "Enhanced ${htmlFile.name} with unified table containing ${tests.size()} tests and ${totalSteps} total steps"
             }
@@ -307,48 +433,6 @@ def countAllSteps(steps) {
     return count
 }
 
-// Helper function to parse duration string to milliseconds
-def parseDurationToMillis(durationString) {
-    if (!durationString) return 0
-    
-    def totalMillis = 0
-    def millisMatch = durationString =~ /(\d+)\s*millis?/
-    def secondsMatch = durationString =~ /(\d+)\s*seconds?/
-    def minutesMatch = durationString =~ /(\d+)\s*minutes?/
-    
-    if (millisMatch) {
-        totalMillis += Integer.parseInt(millisMatch[0][1])
-    }
-    if (secondsMatch) {
-        totalMillis += Integer.parseInt(secondsMatch[0][1]) * 1000
-    }
-    if (minutesMatch) {
-        totalMillis += Integer.parseInt(minutesMatch[0][1]) * 60000
-    }
-    
-    return totalMillis
-}
-
-// Helper function to format duration according to requirements
-def formatDuration(millis) {
-    if (millis <= 0) return ''
-    
-    def totalMillis = millis as int
-    
-    if (totalMillis >= 60000) {
-        // >= 1 minute: "X min Y sec"
-        def minutes = totalMillis / 60000 as int
-        def seconds = (totalMillis % 60000) / 1000 as int
-        return "${minutes} min ${seconds} sec"
-    } else if (totalMillis >= 1000) {
-        // >= 1 second but < 1 minute: "X sec"
-        def seconds = totalMillis / 1000 as int
-        return "${seconds} sec"
-    } else {
-        // < 1 second: "X ms"
-        return "${totalMillis} ms"
-    }
-}
 
 // Helper function to recursively calculate total duration including all nested steps
 def calculateTotalDurationRecursive(step) {
@@ -356,7 +440,7 @@ def calculateTotalDurationRecursive(step) {
     
     // Add this step's duration
     if (step.duration) {
-        def millis = parseDurationToMillis(step.duration)
+        def millis = TestReporter.parseDurationToMillis(step.duration)
         if (millis > 0) {
             totalMillis += millis
         }
@@ -389,318 +473,26 @@ def calculateTotalDuration(steps) {
     }
     
     if (hasValidDuration && totalMillis > 0) {
-        return formatDuration(totalMillis)
+        return TestReporter.formatDuration(totalMillis)
     }
     
     return ''
 }
 
-// Helper function to generate unified HTML for all tests in a class
-def generateUnifiedStepsHtml(tests, containerId = 'kaspresso-steps-unified', stepIdPrefix = 'test') {
-    def html = """
-<div id="${containerId}" style="margin: 20px 0; padding: 20px; background-color: #f9f9f9; border-radius: 5px;">
-<h2 style="color: #333; margin-bottom: 15px;">Tests</h2>
-<style>
-.kaspresso-step-row {
-    cursor: pointer;
-    user-select: none;
-}
-.kaspresso-step-row:hover {
-    background-color: #f0f0f0;
-}
-.kaspresso-step-content {
-    display: none;
-}
-.kaspresso-step-content.expanded {
-    display: table-row !important;
-}
-.kaspresso-toggle {
-    display: inline-block;
-    width: 16px;
-    height: 16px;
-    line-height: 16px;
-    text-align: center;
-    margin-right: 8px;
-    font-weight: bold;
-    color: #666;
-}
-.kaspresso-toggle.expanded::before {
-    content: '▼';
-}
-.kaspresso-toggle.collapsed::before {
-    content: '▶';
-}
-.kaspresso-step-indent {
-    display: inline-block;
-    width: 20px;
-}
-.kaspresso-nested-row {
-    background-color: #fafafa;
-}
-.kaspresso-test-row {
-    background-color: #e8f5e9;
-    font-weight: bold;
-}
-</style>
-<table style="width: 100%; border-collapse: collapse; background-color: white;">
-<thead>
-<tr style="background-color: #4CAF50; color: white;">
-<th style="padding: 12px; text-align: left; border: 1px solid #ddd; width: 60%;">Test / Step</th>
-<th style="padding: 12px; text-align: left; border: 1px solid #ddd; width: 10%;">Status</th>
-<th style="padding: 12px; text-align: left; border: 1px solid #ddd; width: 30%;">Duration</th>
-</tr>
-</thead>
-<tbody id="${containerId}-body">
-"""
-    
-    def stepCounter = [value: 0]
-    html += generateStepRows(tests, stepIdPrefix, stepCounter, "", null, containerId, 'toggleStep')
-    
-    html += """
-</tbody>
-</table>
-</div>
-<script>
-(function(containerId) {
-    var container = document.getElementById(containerId);
-    if (!container) return;
-    
-    function toggleStep(stepId) {
-        var toggle = container.querySelector('#toggle-' + stepId);
-        if (!toggle) return;
-        
-        var isExpanded = toggle.classList.contains('expanded');
-        var childRows = container.querySelectorAll('[data-parent="' + stepId + '"]');
-        
-        if (isExpanded) {
-            childRows.forEach(function(row) {
-                row.style.display = 'none';
-                collapseAllDescendants(row, container);
-            });
-            toggle.classList.remove('expanded');
-            toggle.classList.add('collapsed');
-        } else {
-            childRows.forEach(function(row) {
-                row.style.display = 'table-row';
-            });
-            toggle.classList.remove('collapsed');
-            toggle.classList.add('expanded');
-        }
-    }
-    
-    function collapseAllDescendants(parentRow, container) {
-        var toggle = parentRow.querySelector('[id^="toggle-"]');
-        if (toggle) {
-            var nestedStepId = toggle.id.replace('toggle-', '');
-            var nestedChildren = container.querySelectorAll('[data-parent="' + nestedStepId + '"]');
-            nestedChildren.forEach(function(nested) {
-                nested.style.display = 'none';
-                collapseAllDescendants(nested, container);
-            });
-            toggle.classList.remove('expanded');
-            toggle.classList.add('collapsed');
-        }
-    }
-    
-    // Use event delegation on the container
-    container.addEventListener('click', function(e) {
-        var row = e.target.closest('[data-step-id]');
-        if (row) {
-            var stepId = row.getAttribute('data-step-id');
-            if (stepId) {
-                toggleStep(stepId);
-            }
-        }
-    });
-})('${containerId}');
-</script>
-"""
-    return html
-}
 
-// Helper function to generate HTML for steps (kept for backward compatibility)
-def generateStepsHtml(steps, containerId = 'kaspresso-steps', jsFunctionName = 'toggleStep', stepIdPrefix = 'step') {
-    def html = """
-<div id="${containerId}" style="margin: 20px 0; padding: 20px; background-color: #f9f9f9; border-radius: 5px;">
-<h2 style="color: #333; margin-bottom: 15px;">Kaspresso Test Steps</h2>
-<style>
-.kaspresso-step-row {
-    cursor: pointer;
-    user-select: none;
-}
-.kaspresso-step-row:hover {
-    background-color: #f0f0f0;
-}
-.kaspresso-step-content {
-    display: none;
-}
-.kaspresso-step-content.expanded {
-    display: table-row !important;
-}
-.kaspresso-toggle {
-    display: inline-block;
-    width: 16px;
-    height: 16px;
-    line-height: 16px;
-    text-align: center;
-    margin-right: 8px;
-    font-weight: bold;
-    color: #666;
-}
-.kaspresso-toggle.expanded::before {
-    content: '▼';
-}
-.kaspresso-toggle.collapsed::before {
-    content: '▶';
-}
-.kaspresso-step-indent {
-    display: inline-block;
-    width: 20px;
-}
-.kaspresso-nested-row {
-    background-color: #fafafa;
-}
-</style>
-<table style="width: 100%; border-collapse: collapse; background-color: white;">
-<thead>
-<tr style="background-color: #4CAF50; color: white;">
-<th style="padding: 12px; text-align: left; border: 1px solid #ddd; width: 60%;">Step</th>
-<th style="padding: 12px; text-align: left; border: 1px solid #ddd; width: 10%;">Status</th>
-<th style="padding: 12px; text-align: left; border: 1px solid #ddd; width: 30%;">Duration</th>
-</tr>
-</thead>
-<tbody id="${containerId}-body">
-"""
-    
-    def stepCounter = [value: 0]
-    html += generateStepRows(steps, stepIdPrefix, stepCounter, "", null, containerId)
-    
-    html += """
-</tbody>
-</table>
-</div>
-<script>
-(function(containerId) {
-    var container = document.getElementById(containerId);
-    if (!container) return;
-    
-    function toggleStep(stepId) {
-        var toggle = container.querySelector('#toggle-' + stepId);
-        if (!toggle) return;
-        
-        var isExpanded = toggle.classList.contains('expanded');
-        var childRows = container.querySelectorAll('[data-parent="' + stepId + '"]');
-        
-        if (isExpanded) {
-            childRows.forEach(function(row) {
-                row.style.display = 'none';
-                collapseAllDescendants(row, container);
-            });
-            toggle.classList.remove('expanded');
-            toggle.classList.add('collapsed');
-        } else {
-            childRows.forEach(function(row) {
-                row.style.display = 'table-row';
-            });
-            toggle.classList.remove('collapsed');
-            toggle.classList.add('expanded');
-        }
-    }
-    
-    function collapseAllDescendants(parentRow, container) {
-        var toggle = parentRow.querySelector('[id^="toggle-"]');
-        if (toggle) {
-            var nestedStepId = toggle.id.replace('toggle-', '');
-            var nestedChildren = container.querySelectorAll('[data-parent="' + nestedStepId + '"]');
-            nestedChildren.forEach(function(nested) {
-                nested.style.display = 'none';
-                collapseAllDescendants(nested, container);
-            });
-            toggle.classList.remove('expanded');
-            toggle.classList.add('collapsed');
-        }
-    }
-    
-    // Use event delegation on the container
-    container.addEventListener('click', function(e) {
-        var row = e.target.closest('[data-step-id]');
-        if (row) {
-            var stepId = row.getAttribute('data-step-id');
-            if (stepId) {
-                toggleStep(stepId);
-            }
-        }
-    });
-})('${containerId}');
-</script>
-"""
-    return html
-}
 
-// Helper function to generate step rows recursively
-def generateStepRows(steps, stepIdPrefix, stepCounter, prefix = "", parentId = null, containerId = 'kaspresso-steps', jsFunctionName = 'toggleStep') {
-    def html = ''
-    def currentIdx = 1
-    steps.each { step ->
-        def stepId = "${stepIdPrefix}-${stepCounter.value++}"
-        def statusColor = step.status == 'SUCCEED' ? '#4CAF50' : (step.status == 'FAILED' ? '#f44336' : '#9e9e9e')
-        def statusText = step.status == 'SUCCEED' ? 'PASSED' : (step.status == 'FAILED' ? 'FAILED' : 'RUNNING')
-        def hasChildren = step.children && step.children.size() > 0
-        def isNested = parentId != null
-        
-        def currentPrefix = prefix == "" ? "${currentIdx}." : "${prefix}${currentIdx}."
-        def indentLevel = prefix.split('\\\\.').length - 1
-        if (prefix == "") indentLevel = 0
-        def indent = indentLevel * 20
-        
-        // Format duration
-        def formattedDuration = ''
-        if (step.duration) {
-            // Check if duration is already in the new format (e.g., "2 min 23 sec", "53 sec", "423 ms")
-            // The new format doesn't contain "minutes", "seconds", or "millis" (plural forms)
-            def isNewFormat = step.duration =~ /^\d+\s+(min|sec|ms)$/ || 
-                               step.duration =~ /^\d+\s+min\s+\d+\s+sec$/
-            
-            if (isNewFormat) {
-                // Already formatted in new format, use as is
-                formattedDuration = step.duration
-            } else {
-                // Need to parse and format (handles verbose format like "0 minutes, 0 seconds and 968 millis")
-                def millis = parseDurationToMillis(step.duration)
-                formattedDuration = formatDuration(millis)
-            }
-        }
-        
-        // Main step row - use container-scoped toggle function with event delegation
-        def rowStyle = isNested ? "display: none; border-bottom: 1px solid #ddd;" : "border-bottom: 1px solid #ddd;"
-        def cursorStyle = hasChildren ? "cursor: pointer; " : ""
-        def dataStepId = hasChildren ? "data-step-id=\"${stepId}\"" : ""
-        // Check if this is a top-level test (no parent and has children) - make it stand out
-        def isTestRow = (parentId == null && hasChildren) ? " kaspresso-test-row" : ""
-        html += """
-<tr class="kaspresso-step-row${isNested ? ' kaspresso-nested-row kaspresso-step-content' : ''}${isTestRow}" ${dataStepId} ${isNested ? "data-parent=\"${parentId}\"" : ''} style="${cursorStyle}${rowStyle}">
-<td style="padding: 10px; border: 1px solid #ddd;">
-    <span style="margin-left: ${indent}px;">
-        ${hasChildren ? "<span class=\"kaspresso-toggle collapsed\" id=\"toggle-${stepId}\"></span>" : "<span class=\"kaspresso-step-indent\"></span>"}
-        ${currentPrefix} ${step.name}
-    </span>
-</td>
-<td style="padding: 10px; border: 1px solid #ddd; color: ${statusColor}; font-weight: bold;">${statusText}</td>
-<td style="padding: 10px; border: 1px solid #ddd;">${formattedDuration}</td>
-</tr>
-"""
-        
-        if (hasChildren) {
-            html += generateStepRows(step.children, stepIdPrefix, stepCounter, currentPrefix, stepId, containerId, jsFunctionName)
-        }
-        currentIdx++
+
+// Configure Kotlin compiler options for all compilation tasks
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    kotlinOptions {
+        freeCompilerArgs += ["-Xcontext-receivers"]
     }
-    return html
 }
 
 // Make openTestReport run after connectedAndroidTest
 afterEvaluate {
     tasks.matching { it.name.startsWith('connected') && it.name.endsWith('AndroidTest') }.configureEach {
+        // Finalize with report tasks
         finalizedBy 'enhanceTestReport'
         finalizedBy 'openTestReport'
     }

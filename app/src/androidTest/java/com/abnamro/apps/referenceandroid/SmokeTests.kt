@@ -7,7 +7,7 @@ class SmokeTests : TestSuite() {
     @Test
     fun runAppSuccessfulTest() = run("Run App Successful Test") {
         HelloWorldScreen {
-            step("Verify Hello World app screen") {
+            screenStep ("Verify Hello World app screen") {
                 step("Title equals 'ReferenceAndroid'") {
                     pageTitle.hasTitle("ReferenceAndroid")
                 }
@@ -28,7 +28,7 @@ class SmokeTests : TestSuite() {
     fun contextMenuTest() = run("Context menu Test") {
         HelloWorldScreen {
             showOverflowMenu()
-            step("Verify context menu item is 'Settings'") {
+            screenStep ("Verify context menu item is 'Settings'") {
                 settingItem {
                     inRoot { isPlatformPopup() }
                     hasText("Settings")
