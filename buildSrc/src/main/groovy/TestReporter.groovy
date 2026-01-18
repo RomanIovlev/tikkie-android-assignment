@@ -366,7 +366,8 @@ class TestReporter {
             }
             
             def hasScreenshot = step.screenshot && step.screenshot != ''
-            def effectiveHasChildren = hasChildren || hasScreenshot
+            def hasError = step.error && step.error != ''
+            def effectiveHasChildren = hasChildren || hasScreenshot || hasError
             
             // Main step row - use container-scoped toggle function with event delegation
             def rowStyle = isNested ? "display: none; border-bottom: 1px solid #ddd;" : "border-bottom: 1px solid #ddd;"
@@ -389,6 +390,27 @@ class TestReporter {
             
             if (hasChildren) {
                 html += generateStepRows(step.children, stepIdPrefix, stepCounter, currentPrefix, stepId, containerId, jsFunctionName)
+            }
+            
+            // Add error message as a collapsed block if error exists
+            if (hasError) {
+                def errorIndent = indentLevel * 20
+                def errorStepId = "${stepIdPrefix}-error-${stepCounter.value++}"
+                def escapedError = step.error.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;')
+                
+                // Error block - collapsed by default, clickable to expand
+                html += """
+<tr class="kaspresso-step-row kaspresso-nested-row kaspresso-step-content" data-parent="${stepId}" data-step-id="${errorStepId}" style="display: none; border-bottom: 1px solid #ddd; cursor: pointer;" onclick="toggleScreenshot('${errorStepId}')">
+</tr>
+<tr class="kaspresso-nested-row kaspresso-step-content" data-parent="${stepId}" id="screenshot-content-${errorStepId}" style="display: none; border-bottom: 1px solid #ddd;">
+<td colspan="3" style="padding: 10px; border: 1px solid #ddd; background-color: #ffebee;">
+    <div style="margin-left: ${errorIndent + 20}px; max-height: 500px; overflow: auto;">
+        <div style="font-weight: bold; color: #c62828; margin-bottom: 8px;">Error Details:</div>
+        <pre style="background-color: #fff; padding: 10px; border: 1px solid #ddd; border-radius: 4px; overflow-x: auto; font-size: 12px; font-family: 'Courier New', monospace; white-space: pre-wrap; word-wrap: break-word;">${escapedError}</pre>
+    </div>
+</td>
+</tr>
+"""
             }
             
             // Add screenshot as a collapsed block if screenshot exists

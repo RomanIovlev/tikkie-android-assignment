@@ -12,7 +12,7 @@ class SmokeTests : TestSuite() {
                     pageTitle.hasTitle("ReferenceAndroid")
                 }
                 step("Main text is 'Hello World!'") {
-                    mainText.hasText("Hello World!")
+                    mainText.hasText("Hello World")
                 }
                 step("Email button is visible") {
                     emailButton.isDisplayed()
@@ -31,6 +31,7 @@ class SmokeTests : TestSuite() {
             screenStep ("Verify context menu item is 'Settings'") {
                 settingItem {
                     inRoot { isPlatformPopup() }
+                    isDisplayed()
                     hasText("Settings")
                 }
             }

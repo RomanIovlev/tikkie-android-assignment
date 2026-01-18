@@ -14,10 +14,15 @@ abstract class TestSuite : TestCase(
 
 fun TestContext<*>.screenStep(stepName: String, action: TestContext<*>.() -> Unit) {
     step(stepName) {
-        action()
-        val screenshotName = stepName.lowercase()
-            .replace(" ", "_")
-            .replace(Regex("[^a-z0-9_]"), "")
-        device.screenshots.take(screenshotName)
+        try {
+            action()
+        } catch (ex: Exception) {
+            throw ex
+        } finally {
+            val screenshotName = stepName.lowercase()
+                .replace(" ", "_")
+                .replace(Regex("[^a-z0-9_]"), "")
+            device.screenshots.take(screenshotName)
+        }
     }
 }
