@@ -656,12 +656,16 @@ def generateStepRows(steps, stepIdPrefix, stepCounter, prefix = "", parentId = n
         // Format duration
         def formattedDuration = ''
         if (step.duration) {
-            // Check if duration is already formatted (contains "min", "sec", or "ms")
-            if (step.duration =~ /(min|sec|ms)/) {
-                // Already formatted, use as is
+            // Check if duration is already in the new format (e.g., "2 min 23 sec", "53 sec", "423 ms")
+            // The new format doesn't contain "minutes", "seconds", or "millis" (plural forms)
+            def isNewFormat = step.duration =~ /^\d+\s+(min|sec|ms)$/ || 
+                               step.duration =~ /^\d+\s+min\s+\d+\s+sec$/
+            
+            if (isNewFormat) {
+                // Already formatted in new format, use as is
                 formattedDuration = step.duration
             } else {
-                // Need to parse and format
+                // Need to parse and format (handles verbose format like "0 minutes, 0 seconds and 968 millis")
                 def millis = parseDurationToMillis(step.duration)
                 formattedDuration = formatDuration(millis)
             }
