@@ -1,18 +1,25 @@
 plugins {
     id 'com.android.application'
     id 'kotlin-android'
-    id 'kotlin-android-extensions'
 }
 
 android {
-    compileSdkVersion 29
+    namespace 'com.abnamro.apps.referenceandroid'
+    compileSdkVersion 34
     defaultConfig {
         applicationId "com.abnamro.apps.referenceandroid"
         minSdkVersion 22
-        targetSdkVersion 29
+        targetSdkVersion 34
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = '17'
     }
     buildTypes {
         release {
@@ -20,15 +27,124 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    testOptions {
+        execution 'ANDROIDX_TEST_ORCHESTRATOR'
+        animationsDisabled = true
+   }
 }
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation"org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    implementation 'androidx.appcompat:appcompat:1.2.0'
-    implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
-    implementation 'com.google.android.material:material:1.2.0'
-    testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.1'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation 'androidx.appcompat:appcompat:1.7.1'
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
+    implementation 'com.google.android.material:material:1.13.0'
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.3.0'
+    androidTestImplementation 'androidx.test.ext:junit-ktx:1.3.0'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.7.0'
+    androidTestImplementation 'androidx.test:rules:1.7.0'
+
+    androidTestImplementation 'com.kaspersky.android-components:kaspresso:1.6.0'
+    androidTestImplementation 'io.github.kakaocup:kakao:3.7.0'
+
+    androidTestUtil 'androidx.test:orchestrator:1.6.1'
+}
+
+tasks.register('openTestReport') {
+    group = 'verification'
+    description = 'Opens the enhanced test report in browser'
+    dependsOn 'enhanceTestReport'
+    doLast {
+        def reportFile = file("${layout.buildDirectory.get()}/reports/androidTests/connected/debug/index.html")
+        if (reportFile.exists()) {
+            println "Opening test report: ${reportFile.absolutePath}"
+            if (!BrowserOpener.openInBrowser(reportFile)) {
+                println "Please open manually: ${reportFile.absolutePath}"
+            }
+        } else {
+            BrowserOpener.printManualOpenInstructions(reportFile)
+        }
+    }
+}
+
+tasks.register('viewTestReport') {
+    group = 'verification'
+    description = 'Enhances test report with Kaspresso steps and opens it in browser'
+    dependsOn 'enhanceTestReport', 'openTestReport'
+}
+
+tasks.configureEach { task ->
+    if (task.name in ['enhanceTestReport', 'openTestReport', 'viewTestReport']) {
+        task.group = 'verification'
+    }
+}
+
+tasks.register('enhanceTestReport') {
+    group = 'verification'
+    description = 'Extracts Kaspresso steps from logs and adds them to HTML report'
+    doLast {
+        def reportDir = file("${layout.buildDirectory.get()}/reports/androidTests/connected/debug")
+        def testResultsDir = file("${layout.buildDirectory.get()}/outputs/androidTest-results/connected/debug")
+        def screenshotsDir = new File(reportDir, "screenshots")
+        def adbPath = ScreenshotHandler.findAdbPath()
+        def testsByClass = LogcatParser.parseLogcatFiles(testResultsDir)
+        testsByClass.each { className, tests ->
+            tests.each { testMethodName, steps ->
+                tests[testMethodName] = StepProcessor.deduplicateSteps(steps)
+            }
+        }
+
+        ReportEnhancer.enhanceReports(reportDir, testsByClass, screenshotsDir, adbPath)
+    }
+}
+
+tasks.register('runTestsInParallel') {
+    group = 'verification'
+    description = 'Runs Android tests in parallel using test sharding. Usage: ./gradlew runTestsInParallel'
+    finalizedBy 'enhanceTestReport'
+}
+
+afterEvaluate {
+    def availableDevices = DeviceDetector.getAvailableDevices()
+    def numShardsProperty = project.findProperty('numShards')
+    def requestedShards = numShardsProperty ? numShardsProperty.toInteger() : 0
+    
+    def shardConfig = new TestShardConfig(availableDevices, requestedShards)
+    shardConfig.printDeviceInfo()
+    
+    def taskCreator = new TestShardTaskCreator(project, shardConfig)
+    taskCreator.createShardTasks()
+
+    def runTestsTask = tasks.named('runTestsInParallel')
+    runTestsTask.configure { task ->
+        task.description = shardConfig.hasMultipleDevices() ? 
+            'Runs Android tests in parallel using test sharding across multiple devices. Usage: ./gradlew runTestsInParallel' :
+            'Runs Android tests using test sharding (sequential execution). Usage: ./gradlew runTestsInParallel'
+        
+        if (shardConfig.hasMultipleDevices()) {
+            (0..<shardConfig.shardCount).each { i ->
+                task.dependsOn("testShard${i}")
+            }
+        } else {
+            (0..<shardConfig.shardCount).each { i ->
+                if (i == 0) {
+                    task.dependsOn("testShard${i}")
+                } else {
+                    def currentTask = tasks.named("testShard${i}")
+                    def previousTask = tasks.named("testShard${i - 1}")
+                    currentTask.configure { 
+                        mustRunAfter previousTask
+                    }
+                    task.dependsOn currentTask
+                }
+            }
+        }
+    }
+
+    tasks.matching { it.name.startsWith('connected') && it.name.endsWith('AndroidTest') }.configureEach {
+        finalizedBy 'enhanceTestReport'
+        finalizedBy 'openTestReport'
+    }
 }
