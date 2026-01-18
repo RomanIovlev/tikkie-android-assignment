@@ -100,141 +100,50 @@ tasks.register('enhanceTestReport') {
     }
 }
 
+tasks.register('runTestsInParallel') {
+    group = 'verification'
+    description = 'Runs Android tests in parallel using test sharding. Usage: ./gradlew runTestsInParallel'
+    finalizedBy 'enhanceTestReport'
+}
+
 afterEvaluate {
-    // Detect available devices
     def availableDevices = DeviceDetector.getAvailableDevices()
-    def deviceCount = availableDevices.size()
+    def numShardsProperty = project.findProperty('numShards')
+    def requestedShards = numShardsProperty ? numShardsProperty.toInteger() : 0
     
-    if (deviceCount == 0) {
-        println "WARNING: No Android devices detected. Please connect a device or start an emulator."
-        println "Run 'adb devices' to verify device connection."
-    } else {
-        println "Detected ${deviceCount} device(s): ${availableDevices.join(', ')}"
-    }
+    def shardConfig = new TestShardConfig(availableDevices, requestedShards)
+    shardConfig.printDeviceInfo()
     
-    // Determine number of shards (use device count if available, otherwise use property or default)
-    def numShards = project.findProperty('numShards')
-    def shardCount = numShards ? numShards.toInteger() : (deviceCount > 0 ? Math.min(deviceCount, 4) : 4)
-    
-    // For single device, limit to 1 shard to avoid conflicts (unless explicitly requested)
-    if (deviceCount == 1 && !numShards) {
-        println "INFO: Single device detected. Using 1 shard to avoid conflicts."
-        shardCount = 1
-    } else if (deviceCount > 0 && shardCount > deviceCount) {
-        println "WARNING: Requested ${shardCount} shards but only ${deviceCount} device(s) available. Using ${deviceCount} shards."
-        shardCount = deviceCount
-    }
-    
-    // Find the connectedDebugAndroidTest task
-    def connectedTestTask = tasks.findByName('connectedDebugAndroidTest')
-    
-    if (connectedTestTask) {
-        for (int i = 0; i < shardCount; i++) {
-            def shardIndex = i
-            def shardCountFinal = shardCount
-            def deviceId = deviceCount > 0 ? availableDevices[shardIndex % deviceCount] : null
-            
-            // Create a task that configures and runs the test with specific shard parameters
-            tasks.register("testShard${shardIndex}", org.gradle.api.tasks.Exec) {
-                group = 'verification'
-                description = deviceId ? 
-                    "Runs test shard ${shardIndex} of ${shardCountFinal} on device ${deviceId}" :
-                    "Runs test shard ${shardIndex} of ${shardCountFinal}"
-                
-                workingDir = project.rootDir
-                
-                def isWindows = System.getProperty('os.name').toLowerCase().contains('windows')
-                def gradleCmd = isWindows ? 'gradlew.bat' : './gradlew'
-                
-                // Build the command with sharding parameters
-                def commandArgs = [gradleCmd, 'connectedDebugAndroidTest',
-                    "-Pandroid.testInstrumentationRunnerArguments.numShards=${shardCountFinal}",
-                    "-Pandroid.testInstrumentationRunnerArguments.shardIndex=${shardIndex}"]
-                
-                commandLine = commandArgs
-                
-                // Set environment to use the same Java and target specific device
-                environment = new HashMap(System.getenv())
-                if (System.getProperty('java.home')) {
-                    environment['JAVA_HOME'] = System.getProperty('java.home')
-                }
-                
-                // Set ANDROID_SERIAL to target specific device for this shard
-                if (deviceId) {
-                    environment['ANDROID_SERIAL'] = deviceId
-                }
-                
-                // Don't fail the build if this shard fails - we'll handle it in the main task
-                ignoreExitValue = false
-                
-                doFirst {
-                    println "============================================================"
-                    if (deviceId) {
-                        println "[Shard ${shardIndex}/${shardCountFinal - 1}] Starting on device: ${deviceId}"
-                        // Verify device is still available
-                        def currentDevices = DeviceDetector.getAvailableDevices()
-                        if (!currentDevices.contains(deviceId)) {
-                            throw new GradleException("Device ${deviceId} is no longer available. Please check device connection.")
-                        }
-                    } else {
-                        println "[Shard ${shardIndex}/${shardCountFinal - 1}] Starting (no specific device assigned)"
-                    }
-                    println "============================================================"
-                }
-                
-                doLast {
-                    println "[Shard ${shardIndex}] Completed successfully"
-                }
-            }
-        }
+    def taskCreator = new TestShardTaskCreator(project, shardConfig)
+    taskCreator.createShardTasks()
+
+    def runTestsTask = tasks.named('runTestsInParallel')
+    runTestsTask.configure { task ->
+        task.description = shardConfig.hasMultipleDevices() ? 
+            'Runs Android tests in parallel using test sharding across multiple devices. Usage: ./gradlew runTestsInParallel' :
+            'Runs Android tests using test sharding (sequential execution). Usage: ./gradlew runTestsInParallel'
         
-        // Main task that runs all shards
-        tasks.register('runTestsInParallel') {
-            group = 'verification'
-            description = deviceCount > 1 ? 
-                'Runs Android tests in parallel using test sharding across multiple devices. Usage: ./gradlew runTestsInParallel' :
-                'Runs Android tests using test sharding (sequential execution). Usage: ./gradlew runTestsInParallel'
-            
-            // If multiple devices, run in parallel; otherwise run sequentially
-            if (deviceCount > 1) {
-                // Multiple devices: run shards in parallel
-                (0..<shardCount).each { i ->
-                    dependsOn "testShard${i}"
-                }
-            } else {
-                // Single device: run shards sequentially to avoid conflicts
-                // Force sequential execution by creating explicit dependencies
-                (0..<shardCount).each { i ->
-                    if (i == 0) {
-                        dependsOn "testShard${i}"
-                    } else {
-                        def currentTask = tasks.named("testShard${i}")
-                        def previousTask = tasks.named("testShard${i - 1}")
-                        currentTask.configure { 
-                            mustRunAfter previousTask
-                        }
-                        dependsOn currentTask
-                    }
-                }
+        if (shardConfig.hasMultipleDevices()) {
+            (0..<shardConfig.shardCount).each { i ->
+                task.dependsOn("testShard${i}")
             }
-            
-            finalizedBy 'enhanceTestReport'
-        }
-        
-        // Force sequential execution for shard tasks when only one device is available
-        if (deviceCount <= 1) {
-            (0..<shardCount).each { i ->
-                if (i > 0) {
-                    tasks.named("testShard${i}").configure {
-                        mustRunAfter tasks.named("testShard${i - 1}")
+        } else {
+            (0..<shardConfig.shardCount).each { i ->
+                if (i == 0) {
+                    task.dependsOn("testShard${i}")
+                } else {
+                    def currentTask = tasks.named("testShard${i}")
+                    def previousTask = tasks.named("testShard${i - 1}")
+                    currentTask.configure { 
+                        mustRunAfter previousTask
                     }
+                    task.dependsOn currentTask
                 }
             }
         }
     }
-    
+
     tasks.matching { it.name.startsWith('connected') && it.name.endsWith('AndroidTest') }.configureEach {
-        // Finalize with report tasks
         finalizedBy 'enhanceTestReport'
         finalizedBy 'openTestReport'
     }
