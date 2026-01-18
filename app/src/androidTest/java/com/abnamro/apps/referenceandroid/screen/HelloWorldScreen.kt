@@ -13,8 +13,7 @@ import io.github.kakaocup.kakao.common.views.KView
 object HelloWorldScreen : Screen<HelloWorldScreen>() {
     val pageTitle = KToolbar { withId(R.id.toolbar) }
     val overflowMenuButton = KView { withContentDescription("More options") }
-    val settingsItem = KTextView { withText("Settings") }
-
+    val settingItem = KTextView { withText("Settings") }
     val mainText = KTextView { withId(R.id.helloWorldText) }
     val emailButton = KImageView { withId(R.id.fab) }
 

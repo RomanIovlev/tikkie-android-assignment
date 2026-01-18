@@ -5,9 +5,9 @@ import org.junit.Test
 
 class SmokeTests : TestSuite() {
     @Test
-    fun runAppSuccessful() = run {
-        step("Verify Hello World app screen") {
-            HelloWorldScreen {
+    fun runAppSuccessfulTest() = run("Run App Successful Test") {
+        HelloWorldScreen {
+            step("Verify Hello World app screen") {
                 step("Title equals 'ReferenceAndroid'") {
                     pageTitle.hasTitle("ReferenceAndroid")
                 }
@@ -23,16 +23,15 @@ class SmokeTests : TestSuite() {
             }
         }
     }
+
     @Test
-    fun settingsPopupWorks() = run {
-        step("Verify Settings popup") {
-            HelloWorldScreen {
-                showOverflowMenu()
-                step("Settings menu item is visible") {
-                    settingsItem {
-                        inRoot { isPlatformPopup() }
-                        isDisplayed()
-                    }
+    fun contextMenuTest() = run("Context menu Test") {
+        HelloWorldScreen {
+            showOverflowMenu()
+            step("Verify context menu item is 'Settings'") {
+                settingItem {
+                    inRoot { isPlatformPopup() }
+                    hasText("Settings")
                 }
             }
         }
