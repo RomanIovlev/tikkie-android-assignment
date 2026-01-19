@@ -3,4 +3,17 @@
     <color name="colorPrimary">#008577</color>
     <color name="colorPrimaryDark">#00574B</color>
     <color name="colorAccent">#D81B60</color>
+    
+    <!-- Tikkie App Colors -->
+    <color name="tikkie_dark_purple">#2B2A57</color>
+    <color name="tikkie_purple_card">#5556AB</color>
+    <color name="tikkie_teal">#00877F</color>
+    <color name="tikkie_green">#00D4AA</color>
+    <color name="tikkie_dark_blue">#2A3A4E</color>
+    <color name="tikkie_text_white">#FFFFFF</color>
+    <color name="tikkie_text_gray">#A0A0A0</color>
+    <color name="tikkie_bottom_nav">#4D4D64</color>
+    <color name="tikkie_keyboard_bg">#2A2A2A</color>
+    <color name="tikkie_status_paid">#6B6B6B</color>
+    <color name="tikkie_badge_red">#FF4444</color>
 </resources>

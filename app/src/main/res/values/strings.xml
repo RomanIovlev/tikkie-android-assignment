@@ -1,4 +1,34 @@
 <resources>
-    <string name="app_name">ReferenceAndroid</string>
+    <string name="app_name">TIKKIE</string>
     <string name="action_settings">Settings</string>
+    
+    <!-- Main Screen -->
+    <string name="tikkies">Tikkies</string>
+    <string name="deals">Deals</string>
+    <string name="groepies">Groepies</string>
+    <string name="paid_expired">Paid %1$dx - expired</string>
+    
+    <!-- Payment Details -->
+    <string name="tikkie_of">Tikkie of %1$s p.p.</string>
+    <string name="total_settled">Total settled up %1$s</string>
+    <string name="tikkie_id">Tikkie ID: %1$s</string>
+    <string name="execution_date">Execution date: %1$s</string>
+    <string name="paid_on_account">You were paid on account: %1$s</string>
+    <string name="created_on">Created on: %1$s</string>
+    <string name="delete">Delete</string>
+    
+    <!-- Step 1 -->
+    <string name="whats_the_amount">What\'s the amount?</string>
+    <string name="max_amount_hint">You can request back a maximum of %1$s.</string>
+    <string name="payer_may_choose_amount">Payer may choose amount</string>
+    <string name="account">Account: %1$s</string>
+    
+    <!-- Step 2 -->
+    <string name="what_is_it_for">What is it for?</string>
+    <string name="share">Share</string>
+    
+    <!-- Date Format -->
+    <string name="date_format">dd MMM</string>
+    <string name="date_time_format">dd MMM yyyy, HH:mm</string>
+    <string name="date_format_long">dd MMMM yyyy</string>
 </resources>
