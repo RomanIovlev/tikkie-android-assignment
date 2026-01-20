@@ -14,14 +14,14 @@ import com.abnamro.apps.referenceandroid.model.TikkiePayment
 class MainActivity : AppCompatActivity() {
 
     private lateinit var paymentRecyclerView: RecyclerView
-    private lateinit var addFab: ImageButton
+    private lateinit var addPaymentButton: ImageButton
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         paymentRecyclerView = findViewById(R.id.paymentRecyclerView)
-        addFab = findViewById(R.id.addFab)
+        addPaymentButton = findViewById(R.id.addPaymentButton)
         val profileButton: ImageButton = findViewById(R.id.profileButton)
 
         setupRecyclerView()
@@ -42,7 +42,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupFab() {
-        addFab.setOnClickListener {
+        addPaymentButton.setOnClickListener {
             openStep1(null)
         }
     }

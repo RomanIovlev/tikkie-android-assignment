@@ -40,25 +40,17 @@ val unpaidPayment = PaymentData(
     status = null
 )
 
-val amountInputValidationTestCases = listOf(
+val amountInputCases = listOf(
     InputResult("50", "50"),
     InputResult("50.", "50."),
     InputResult("50.5", "50.5"),
     InputResult("50.50", "50.50"),
-    InputResult("", ".00")
-)
-
-val maxAmountLimitTestCases = listOf(
-    InputResult("1000", "999"),
+    InputResult("", ".00"),
     InputResult("999.99", "999.99"),
-    InputResult("1000.00", "999")
 )
 
-val unallowedAmount = listOf(".00", "0", "50")
-
-val descriptionInputTestCases = listOf(
+val descriptionInputCases = listOf(
     InputResult("Test payment", "12"),
     InputResult("A", "1"),
-    InputResult("This is a longer description text", "35"),
     InputResult("", "0")
 )

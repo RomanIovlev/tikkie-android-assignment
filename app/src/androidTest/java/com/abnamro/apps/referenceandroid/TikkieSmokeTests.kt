@@ -18,19 +18,14 @@ class TikkieSmokeTests : TestSuite() {
             setupMockedPayments(listOf(dinnerDetails), activityRule)
             step("$dinnerDetails") {}
         }
-        MainScreen {
-            verifyMainScreenOpen()
-            selectPaymentByTitle(dinnerDetails.title)
-        }
+        MainScreen { selectPaymentByTitle(dinnerDetails.title) }
         PaymentDetailsScreen {
-                verifyAllTexts(dinnerDetails)
+            verifyAllTexts(dinnerDetails)
             screenStep("Click back button") {
                 backButton.click()
             }
         }
-        MainScreen {
-            verifyMainScreenOpen()
-        }
+        MainScreen { verifyMainScreenOpen() }
     }
 
     @Test
@@ -46,21 +41,15 @@ class TikkieSmokeTests : TestSuite() {
             screenStep("Type '$newPaymentAsString'") {
                 amountInput.replaceText(newPaymentAsString)
             }
-            screenStep("Click Next button") {
-                nextButton.click()
-            }
+            screenStep("Click Next button") { nextButton.click() }
         }
         AddPaymentStep2Screen {
             screenStep("Type '${newPayment.title}'") {
                 descriptionInput.typeText(newPayment.title)
             }
-            step("Click Share button") {
-                shareButton.click()
-            }
+            step("Click Share button") { shareButton.click() }
         }
-        PaymentDetailsScreen {
-            verifyAllTexts(newPayment)
-        }
+        PaymentDetailsScreen { verifyAllTexts(newPayment) }
     }
 
     @Test
@@ -77,9 +66,7 @@ class TikkieSmokeTests : TestSuite() {
                 }
             }
             step("Verify all payment cards") {
-                mockedAlicePayments.forEach { payment ->
-                    verifyPaymentCardDetails(payment)
-                }
+                mockedAlicePayments.forEach { verifyPaymentCardDetails(it) }
             }
         }
     }

@@ -164,7 +164,7 @@
 
         <!-- Add Button (FAB) -->
         <ImageButton
-            android:id="@+id/addFab"
+            android:id="@+id/addPaymentButton"
             android:layout_width="64dp"
             android:layout_height="64dp"
             android:layout_margin="16dp"
