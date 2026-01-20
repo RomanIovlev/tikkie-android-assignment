@@ -1,12 +1,12 @@
 package com.abnamro.apps.referenceandroid.testdata.dataproviders
 
-import com.abnamro.apps.referenceandroid.testdata.amountInputCases
-import com.abnamro.apps.referenceandroid.testdata.descriptionInputCases
+import com.abnamro.apps.referenceandroid.testdata.correctAmountValues
+import com.abnamro.apps.referenceandroid.testdata.correctDescriptionValues
 
 object TikkieDataProviders {
     @JvmStatic
-    fun amountData() = amountInputCases.map { arrayOf(it.input, it.result) }
+    fun amountData() = correctAmountValues.map { arrayOf(it.input, it.result) }
 
     @JvmStatic
-    fun descriptionData() = descriptionInputCases.map { arrayOf(it.input, it.result) }
+    fun descriptionData() = correctDescriptionValues.map { arrayOf(it.input, it.result) }
 }

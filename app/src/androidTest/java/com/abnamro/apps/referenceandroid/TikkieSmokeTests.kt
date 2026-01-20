@@ -13,22 +13,6 @@ import org.junit.Test
 
 class TikkieSmokeTests : TestSuite() {
     @Test
-    fun dinnerPaymentDetailsTest() = run("Dinner Payment Details test") {
-        step("Setup mocked payment '${dinnerDetails.title}'") {
-            setupMockedPayments(listOf(dinnerDetails), activityRule)
-            step("$dinnerDetails") {}
-        }
-        PaymentsScreen { selectPaymentByTitle(dinnerDetails.title) }
-        PaymentDetailsScreen {
-            verifyAllTexts(dinnerDetails)
-            screenStep("Click back button") {
-                backButton.click()
-            }
-        }
-        PaymentsScreen { verifyMainScreenOpen() }
-    }
-
-    @Test
     fun createNewTikkiePaymentTest() = run("Create New Tikkie Payment test") {
         PaymentsScreen {
             verifyMainScreenOpen()
@@ -50,6 +34,22 @@ class TikkieSmokeTests : TestSuite() {
             step("Click Share button") { shareButton.click() }
         }
         PaymentDetailsScreen { verifyAllTexts(newPayment) }
+    }
+
+    @Test
+    fun dinnerPaymentDetailsTest() = run("Dinner Payment Details test") {
+        step("Setup mocked payment '${dinnerDetails.title}'") {
+            setupMockedPayments(listOf(dinnerDetails), activityRule)
+            step("$dinnerDetails") {}
+        }
+        PaymentsScreen { selectPaymentByTitle(dinnerDetails.title) }
+        PaymentDetailsScreen {
+            verifyAllTexts(dinnerDetails)
+            screenStep("Click back button") {
+                backButton.click()
+            }
+        }
+        PaymentsScreen { verifyMainScreenOpen() }
     }
 
     @Test

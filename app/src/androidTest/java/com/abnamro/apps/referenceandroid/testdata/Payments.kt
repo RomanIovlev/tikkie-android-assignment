@@ -34,23 +34,39 @@ val mockedAlicePayments = listOf(
     )
 )
 
-val unpaidPayment = PaymentData(
-    title = "Unpaid Test Payment",
-    amount = 45.75f,
-    status = null
-)
+val correctAmountValues = listOf(
+    InputResult("5.00", "5.00"),     // Min value
+    InputResult("999", "999"),       // Max whole value
+    InputResult("999.99", "999.99"), // Max value
 
-val amountInputCases = listOf(
-    InputResult("50", "50"),
     InputResult("50.", "50."),
-    InputResult("50.5", "50.5"),
-    InputResult("50.50", "50.50"),
-    InputResult("", ".00"),
-    InputResult("999.99", "999.99"),
+    InputResult(".5", ".5"),
+    InputResult("001", "1"),
 )
 
-val descriptionInputCases = listOf(
-    InputResult("Test payment", "12"),
-    InputResult("A", "1"),
-    InputResult("", "0")
+val incorrectAmountValues = listOf(
+    InputResult("", ".00"),
+    InputResult("4.99", "5.00"),
+    InputResult("1000", "999"),
+)
+
+val correctDescriptionValues = listOf(
+    InputResult("", "0"),
+    InputResult("Minim", "5"),                      // Minimum
+    InputResult("Dinner party", "12"),
+    InputResult("Birthday gift for friend","25"),  // Maximum
+
+    InputResult("!@#%^&*()_+-=[]{}|;':\",.", "24"), // Special symbols
+
+    // Localization support
+    InputResult("测试测试测试", "6"),
+    InputResult("тестик", "6"),
+    InputResult("テストスト", "5"),
+    InputResult("اختبار", "5"),
+
+    InputResult("Payment 😀🎉💰🔥", "12"),         // Icons support
+
+    InputResult("javascript:alert('XSS')", "22"),   // JS injection
+    InputResult("' OR '1'='1", "12"),               // SQL injection
+    InputResult("test; rm -rf /", "15"),            // Bash hack
 )

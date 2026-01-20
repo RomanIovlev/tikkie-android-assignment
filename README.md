@@ -68,8 +68,21 @@ To run tests in parallel use gradle task `runTestsInParallel` or run in terminal
 
 Note: Test report doesn't work well for now with parallel test run but that can be fixed later
 
-### Testing strategy
+### Tests covered
 
+**createNewTikkiePaymentTest**: Main create Tikkie payment flow:
+1. Click (+) add Payment button
+2. Enter requested payment amount
+3. Enter Description for payment
+4. Share payment
+**dinnerPaymentDetailsTest**: Check that details shown correctly for existing payments
+**AmountInputValidationTest**: Data Driven tests for different Amount values
+**DescriptionInputValidationTest**: Data Driven tests for different Description values
+
+### TBD tests
+
+* Incorrect values for amount that is mandatory to enter
+* Special symolsd
 
 
 ## Next steps
