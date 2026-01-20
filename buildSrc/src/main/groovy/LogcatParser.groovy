@@ -1,3 +1,5 @@
+import static java.net.URLDecoder.decode
+
 class LogcatParser {
     static Map<String, Map<String, List>> parseLogcatFiles(File testResultsDir) {
         def testsByClass = [:]
@@ -7,24 +9,20 @@ class LogcatParser {
                 def steps = extractStepsFromLogcat(logcatContent)
                 
                 if (steps.size() > 0) {
-                    // Parse filename: logcat-ClassName-TestMethodName.txt
-                    // Handle parameterized test names with brackets, colons, spaces, etc.
-                    // Example: logcat-AmountInputValidationTest-test[input: 50, expected: 50].txt
                     def filename = logcatFile.name
                     def txtIndex = filename.lastIndexOf('.txt')
                     if (txtIndex > 0) {
                         def nameWithoutExt = filename.substring(0, txtIndex)
-                        // Find the last dash to separate class name from method name
-                        // This handles cases where method name contains dashes (though rare)
+                        if (nameWithoutExt.startsWith('logcat-')) {
+                            nameWithoutExt = nameWithoutExt.substring(7)
+                        }
                         def lastDashIndex = nameWithoutExt.lastIndexOf('-')
                         if (lastDashIndex > 0 && lastDashIndex < nameWithoutExt.length() - 1) {
                             def className = nameWithoutExt.substring(0, lastDashIndex)
                             def testMethodName = nameWithoutExt.substring(lastDashIndex + 1)
-                            // Handle URL encoding if Android test runner encoded special characters
                             try {
-                                testMethodName = java.net.URLDecoder.decode(testMethodName, "UTF-8")
-                            } catch (Exception e) {
-                                // If decoding fails, use original name (might already be decoded)
+                                testMethodName = decode(testMethodName, "UTF-8")
+                            } catch (Exception ignored) {
                             }
                             if (!testsByClass.containsKey(className)) {
                                 testsByClass[className] = [:]
@@ -190,29 +188,22 @@ class LogcatParser {
         def gotLine = ''
         
         lines.each { line ->
-            // Look for "E TestRunner: Expected:" pattern
-            // Match: "E TestRunner: Expected: ..." or "E  TestRunner: Expected: ..." (with variable spaces)
             if (line.contains('E') && line.contains('TestRunner:') && line.contains('Expected:')) {
-                // Extract everything after "Expected:" and trim multiple spaces
                 def match = line =~ /E\s+TestRunner:\s+Expected:\s*(.+)$/
                 if (match) {
                     expectedLine = match[0][1].replaceAll(/\s+/, ' ').trim()
                 } else {
-                    // Try alternative pattern without strict spacing
                     def altMatch = line =~ /.*Expected:\s*(.+)$/
                     if (altMatch) {
                         expectedLine = altMatch[0][1].replaceAll(/\s+/, ' ').trim()
                     }
                 }
             }
-            // Look for "E TestRunner:      Got:" pattern (with multiple spaces)
             else if (line.contains('E') && line.contains('TestRunner:') && line.contains('Got:')) {
-                // Extract everything after "Got:" and trim multiple spaces
                 def match = line =~ /E\s+TestRunner:\s+Got:\s*(.+)$/
                 if (match) {
                     gotLine = match[0][1].replaceAll(/\s+/, ' ').trim()
                 } else {
-                    // Try alternative pattern without strict spacing
                     def altMatch = line =~ /.*Got:\s*(.+)$/
                     if (altMatch) {
                         gotLine = altMatch[0][1].replaceAll(/\s+/, ' ').trim()
