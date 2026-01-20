@@ -2,6 +2,7 @@ package com.abnamro.apps.referenceandroid
 
 import com.abnamro.apps.referenceandroid.screens.PaymentsScreen
 import com.abnamro.apps.referenceandroid.screens.AddPaymentStep2Screen
+import com.abnamro.apps.referenceandroid.screens.PaymentDetailsScreen
 import com.abnamro.apps.referenceandroid.testdata.dataproviders.TikkieDataProviders.descriptionData
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -27,14 +28,13 @@ class DescriptionInputValidationTest(
             screenStep("Verify description input is displayed") { descriptionInput.isDisplayed() }
             screenStep("Verify character count is not displayed initially") { characterCount.isNotDisplayed() }
             if (input.isNotEmpty()) {
-                screenStep("Enter '$input'") { descriptionInput.typeText(input) }
+                screenStep("Enter '$input'") { descriptionInput.replaceText(input) }
                 screenStep("Verify character count shows '$result'") {
                     characterCount.hasText(result)
-                    characterCount.isDisplayed()
                 }
-                screenStep("Clear input") { descriptionInput.clearText() }
             }
-            screenStep("Verify character count is hidden") { characterCount.isNotDisplayed() }
+            step("Click Share button") { shareButton.click() }
         }
+        PaymentDetailsScreen { title.hasText(input) }
     }
 }

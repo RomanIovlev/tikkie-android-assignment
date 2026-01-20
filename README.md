@@ -68,22 +68,30 @@ To run tests in parallel use gradle task `runTestsInParallel` or run in terminal
 
 Note: Test report doesn't work well for now with parallel test run but that can be fixed later
 
-### Tests covered
+### Smoke Tests
 
-**createNewTikkiePaymentTest**: Main create Tikkie payment flow:
+* **createNewTikkiePaymentTest**: Main create Tikkie payment flow:
 1. Click (+) add Payment button
 2. Enter requested payment amount
 3. Enter Description for payment
 4. Share payment
-**dinnerPaymentDetailsTest**: Check that details shown correctly for existing payments
-**AmountInputValidationTest**: Data Driven tests for different Amount values
-**DescriptionInputValidationTest**: Data Driven tests for different Description values
+* **dinnerPaymentDetailsTest**: Check that details shown correctly for existing payments
+* **paymentsListTest**: Check payments list data shown correctly
+
+### Data driven tests
+
+* **AmountInputValidationTest**: 6 tests cases for correct amount input
+* **DescriptionInputValidationTest**: 12 test cases for different correct Description including localization JS, SQL injections and emojis
 
 ### TBD tests
 
-* Incorrect values for amount that is mandatory to enter
-* Special symolsd
-
+* Incorrect values for amount and description input
+* Back functionality
+* No/Low connection to internet
+* No Payments screen
+* Change Profile
+* Pay for tikkie and check Payment status changes
+* Payments expire
 
 ## Next steps
 
@@ -96,7 +104,6 @@ Note: Test report doesn't work well for now with parallel test run but that can 
 
 ### For QA
 
-* Add mocks for used test data (while more functionality will be implemented + API layer)
 * Add more functional tests using Balanced Test Pyramid principal
 * Group tests by tags and categories/functionality
 * Improve reporting. Add support for parallel test runs

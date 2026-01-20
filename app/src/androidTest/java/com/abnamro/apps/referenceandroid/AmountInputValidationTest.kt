@@ -2,6 +2,7 @@ package com.abnamro.apps.referenceandroid
 
 import com.abnamro.apps.referenceandroid.screens.PaymentsScreen
 import com.abnamro.apps.referenceandroid.screens.AddPaymentStep1Screen
+import com.abnamro.apps.referenceandroid.screens.AddPaymentStep2Screen
 import com.abnamro.apps.referenceandroid.testdata.dataproviders.TikkieDataProviders.amountData
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -26,6 +27,12 @@ class AmountInputValidationTest(
         AddPaymentStep1Screen {
             screenStep("Enter '$input'") { amountInput.replaceText(input) }
             screenStep("Verify input shows '$result'") { amountInput.hasText(result) }
+            step("Click Next button") { nextButton.click() }
+        }
+        AddPaymentStep2Screen {
+            screenStep("Verify Description input screen opened") {
+                descriptionInput.isDisplayed()
+            }
         }
     }
 }

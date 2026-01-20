@@ -7,6 +7,7 @@ import io.github.kakaocup.kakao.screen.Screen
 import io.github.kakaocup.kakao.text.KTextView
 
 object AddPaymentStep2Screen : Screen<AddPaymentStep2Screen>() {
+    val backButton = KImageView { withId(R.id.backButton) }
     val descriptionInput = KEditText { withId(R.id.descriptionInput) }
     val characterCount = KTextView { withId(R.id.characterCount) }
     val shareButton = KImageView { withId(R.id.shareButton) }

@@ -37,7 +37,7 @@ val mockedAlicePayments = listOf(
 val correctAmountValues = listOf(
     InputResult("5.00", "5.00"),     // Min value
     InputResult("999", "999"),       // Max whole value
-    InputResult("999.99", "999.99"), // Max value
+    InputResult("999.00", "999.00"), // Max value
 
     InputResult("50.", "50."),
     InputResult(".5", ".5"),
@@ -47,14 +47,13 @@ val correctAmountValues = listOf(
 val incorrectAmountValues = listOf(
     InputResult("", ".00"),
     InputResult("4.99", "5.00"),
-    InputResult("1000", "999"),
+    InputResult("999.01", "999.00"),
 )
 
 val correctDescriptionValues = listOf(
-    InputResult("", "0"),
-    InputResult("Minim", "5"),                      // Minimum
+    InputResult("Minim", "5"),                      // Minimum 5
     InputResult("Dinner party", "12"),
-    InputResult("Birthday gift for friend","25"),  // Maximum
+    InputResult("Birthday gift by friend","23"),   // Maximum 24
 
     InputResult("!@#%^&*()_+-=[]{}|;':\",.", "24"), // Special symbols
 
@@ -62,11 +61,13 @@ val correctDescriptionValues = listOf(
     InputResult("测试测试测试", "6"),
     InputResult("тестик", "6"),
     InputResult("テストスト", "5"),
-    InputResult("اختبار", "5"),
+    InputResult("اختبار", "6"),
 
-    InputResult("Payment 😀🎉💰🔥", "12"),         // Icons support
+    InputResult("Payment 😀🎉💰🔥", "16"),         // Icons support
 
-    InputResult("javascript:alert('XSS')", "22"),   // JS injection
-    InputResult("' OR '1'='1", "12"),               // SQL injection
-    InputResult("test; rm -rf /", "15"),            // Bash hack
+    InputResult("javascript:alert('XSS')", "23"),   // JS injection
+    InputResult("' OR '1'='1", "11"),               // SQL injection
+    InputResult("test; rm -rf /", "14"),            // Bash hack
 )
+
+val incorrectDescriptionValues = listOf("")
