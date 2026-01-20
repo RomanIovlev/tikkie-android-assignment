@@ -1,5 +1,6 @@
 package com.abnamro.apps.referenceandroid.testdata
 
+import com.abnamro.apps.referenceandroid.testdata.dataclass.InputResult
 import com.abnamro.apps.referenceandroid.testdata.dataclass.PaymentData
 
 val dinnerDetails = PaymentData(
@@ -17,16 +18,6 @@ val newPayment = PaymentData(
     amount = 52f
 )
 
-val defaultDinnerPayment = PaymentData(
-    title = "Dinner",
-    status = "Paid 1x - expired",
-    amount = 21.50f,
-    tikkieId = 1142411970,
-    executionDate = "Execution date: 16 Dec 2024, 09:58",
-    paidBy = "You were paid on account: Alex",
-    createdOn = "Created on: 15 December 2024"
-)
-
 val mockedAlicePayments = listOf(
     PaymentData(
         title = "Concert Tickets",
@@ -41,4 +32,33 @@ val mockedAlicePayments = listOf(
         title = "Lunch",
         amount = 15.25f
     )
+)
+
+val unpaidPayment = PaymentData(
+    title = "Unpaid Test Payment",
+    amount = 45.75f,
+    status = null
+)
+
+val amountInputValidationTestCases = listOf(
+    InputResult("50", "50"),
+    InputResult("50.", "50."),
+    InputResult("50.5", "50.5"),
+    InputResult("50.50", "50.50"),
+    InputResult("", ".00")
+)
+
+val maxAmountLimitTestCases = listOf(
+    InputResult("1000", "999"),
+    InputResult("999.99", "999.99"),
+    InputResult("1000.00", "999")
+)
+
+val unallowedAmount = listOf(".00", "0", "50")
+
+val descriptionInputTestCases = listOf(
+    InputResult("Test payment", "12"),
+    InputResult("A", "1"),
+    InputResult("This is a longer description text", "35"),
+    InputResult("", "0")
 )

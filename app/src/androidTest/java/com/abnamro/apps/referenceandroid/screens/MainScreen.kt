@@ -9,24 +9,32 @@ import com.abnamro.apps.referenceandroid.screenStep
 import com.abnamro.apps.referenceandroid.testdata.dataclass.PaymentData
 import com.kaspersky.kaspresso.testcases.core.testcontext.TestContext
 import io.github.kakaocup.kakao.image.KImageView
-import io.github.kakaocup.kakao.recycler.KRecyclerItem
 import io.github.kakaocup.kakao.recycler.KRecyclerView
 import io.github.kakaocup.kakao.screen.Screen
-import io.github.kakaocup.kakao.text.KTextView
-import org.hamcrest.Matcher
 import org.hamcrest.Matchers.allOf
 
 object MainScreen : Screen<MainScreen>() {
     val addPaymentButton = KImageView { withId(R.id.addFab) }
-    val profileButton = KImageView { withId(R.id.profileButton) }
-    val settingsMenuItem = KTextView { withId(R.id.profile_settings) }
-    val logoutMenuItem = KTextView { withId(R.id.profile_logout) }
     val paymentRecyclerView = KRecyclerView(
         builder = { withId(R.id.paymentRecyclerView) },
         itemTypeBuilder = { itemType(::PaymentItem) }
     )
 
-    fun TestContext<*>.verifyTikkieAppOpen() {
+    fun TestContext<*>.navigateToPaymentAmount() {
+        screenStep("Navigate to create payment Amount screen") {
+            addPaymentButton.click()
+        }
+    }
+    fun TestContext<*>.navigateToPaymentDescription() {
+        screenStep("Navigate to create payment Description screen") {
+            addPaymentButton.click()
+            AddPaymentStep1Screen {
+                amountInput.replaceText("50")
+                nextButton.click()
+            }
+        }
+    }
+    fun TestContext<*>.verifyMainScreenOpen() {
         screenStep("Tikkie app Main screen shown") {
             addPaymentButton.isDisplayed()
         }
@@ -42,13 +50,6 @@ object MainScreen : Screen<MainScreen>() {
             ).perform(click())
         }
     }
-
-    class PaymentItem(parent: Matcher<android.view.View>) : KRecyclerItem<PaymentItem>(parent) {
-        val paymentTitle = KTextView { withId(R.id.title) }
-        val amount = KTextView { withId(R.id.amount) }
-        val status = KTextView { withId(R.id.status) }
-    }
-
 
     fun TestContext<*>.verifyPaymentCardDetails(payment: PaymentData) {
         step("Verify payment card details for '${payment.title}'") {

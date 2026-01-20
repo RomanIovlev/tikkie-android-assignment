@@ -2,9 +2,7 @@ package com.abnamro.apps.referenceandroid.mocks
 
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import com.abnamro.apps.referenceandroid.MainActivity
-import com.abnamro.apps.referenceandroid.TikkieRepository
-import com.abnamro.apps.referenceandroid.TikkieRepository.addPayment
-import com.abnamro.apps.referenceandroid.TikkieRepository.restorePayments
+import com.abnamro.apps.referenceandroid.TikkieRepository.setPayments
 import com.abnamro.apps.referenceandroid.model.PaymentStatus
 import com.abnamro.apps.referenceandroid.model.TikkiePayment
 import com.abnamro.apps.referenceandroid.testdata.dataclass.PaymentData
@@ -17,16 +15,8 @@ object PaymentMockHelper {
     private val dateTimeFormat = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
     private val dateFormatLong = SimpleDateFormat("dd MMMM yyyy", Locale.getDefault())
 
-    fun setupMockedPayment(paymentData: PaymentData, activityRule: ActivityScenarioRule<MainActivity>) {
-        addPayment(convertPaymentDataToTikkiePayment(paymentData))
-        activityRule.scenario.recreate()
-    }
-
     fun setupMockedPayments(paymentsData: List<PaymentData>, activityRule: ActivityScenarioRule<MainActivity>) {
-        restorePayments()
-        paymentsData.forEach { paymentData ->
-            addPayment(convertPaymentDataToTikkiePayment(paymentData))
-        }
+        setPayments(paymentsData.map { convertPaymentDataToTikkiePayment(it) })
         activityRule.scenario.recreate()
     }
     
@@ -77,7 +67,7 @@ object PaymentMockHelper {
     private fun parseDateSafely(dateString: String, format: SimpleDateFormat): Date? {
         return try {
             format.parse(dateString)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
     }

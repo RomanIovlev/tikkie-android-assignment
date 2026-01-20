@@ -7,7 +7,6 @@ import com.kaspersky.kaspresso.testcases.core.testcontext.TestContext
 import io.github.kakaocup.kakao.image.KImageView
 import io.github.kakaocup.kakao.screen.Screen
 import io.github.kakaocup.kakao.text.KTextView
-import io.github.kakaocup.kakao.common.views.KView
 
 object PaymentDetailsScreen : Screen<PaymentDetailsScreen>() {
     val backButton = KImageView { withId(R.id.backButton) }
@@ -17,10 +16,6 @@ object PaymentDetailsScreen : Screen<PaymentDetailsScreen>() {
     val totalSettled = KTextView { withId(R.id.totalSettled) }
     val paymentName = KTextView { withId(R.id.paymentName) }
     val amount = KTextView { withId(R.id.amount) }
-    val amountRow = KView { withId(R.id.amountRow) }
-    val expandButton = KImageView { withId(R.id.expandButton) }
-    val collapsibleContent = KView { withId(R.id.collapsibleContent) }
-    val deleteButton = KView { withId(R.id.deleteButton) }
 
     val tikkieId = KTextView { withId(R.id.tikkieId) }
     val executionDate = KTextView { withId(R.id.executionDate) }

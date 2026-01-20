@@ -50,8 +50,10 @@ object TikkieRepository {
         payments.add(0, payment)
     }
 
-    fun restorePayments() {
+    fun setPayments(newPayments: List<TikkiePayment>) {
         payments.clear()
-        payments.addAll(defaultPayments)
+        for (payment in newPayments) {
+            addPayment(payment)
+        }
     }
 }
