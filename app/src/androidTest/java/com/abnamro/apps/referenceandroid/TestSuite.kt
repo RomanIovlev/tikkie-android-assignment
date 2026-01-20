@@ -1,13 +1,16 @@
 package com.abnamro.apps.referenceandroid
 
 import androidx.test.ext.junit.rules.activityScenarioRule
+import com.kaspersky.kaspresso.interceptors.watcher.testcase.impl.screenshot.ScreenshotStepWatcherInterceptor
 import com.kaspersky.kaspresso.kaspresso.Kaspresso.Builder.Companion.advanced
 import com.kaspersky.kaspresso.testcases.api.testcase.TestCase
 import com.kaspersky.kaspresso.testcases.core.testcontext.TestContext
 import org.junit.Rule
 
 abstract class TestSuite : TestCase(
-    kaspressoBuilder = advanced()
+    kaspressoBuilder = advanced().apply {
+        stepWatcherInterceptors.removeAll { it is ScreenshotStepWatcherInterceptor }
+    }
 ) {
     @get:Rule
     val activityRule = activityScenarioRule<MainActivity>()

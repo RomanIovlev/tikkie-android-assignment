@@ -14,9 +14,12 @@
 * **UI Framework**: Material Design Components, AppCompat, ConstraintLayout
 * **Build Tool**: Gradle/Android Gradle Plugin 8.13.2
 
-### Screen and flows
+### Screens
 
-* One screen application with simple header and "Hello World!" text in the middle, Email button and Context menu
+* Main Screen: List of paid tikkies and button Create new Tikkie(payment)
+* Payment details screen: Can be opened by clicking on tikkie in list. Contain details of Payment
+* Sequence of New Payment screens: Enter Amount and Description 
+* While Payment request created it can be shared, that leads user to Payment details screen
 
 ## Testing
 
@@ -61,16 +64,12 @@ Note: Test report doesn't work well for now with parallel test run but that can 
 
 ### Testing strategy
 
-Project is to small to demo any strategy so covered two flows
 
-* Main screen with all elements
-* Context menu with "Settings" element
 
 ## Next steps
 
 ### For Developers
 
-* Include more functionality in project (check branch `tikkie-tests`)
 * Add Unit Tests (Only example test exists) no real business logic covered with tests
 * Track code coverage: SonarQube + JaCoCo (now Sonar commented out - not active)
 * Add NFR testing: Accessibility, Performance and Security Testing

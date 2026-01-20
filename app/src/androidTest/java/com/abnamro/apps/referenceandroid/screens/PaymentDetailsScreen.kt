@@ -39,7 +39,7 @@ object PaymentDetailsScreen : Screen<PaymentDetailsScreen>() {
                 statusLabel.hasText(payment.status)
             }
             if (payment.tikkieId != null) {
-                tikkieId.hasText(payment.tikkieId)
+                tikkieId.hasText("Tikkie ID: ${payment.tikkieId}")
             }
             if (payment.executionDate != null) {
                 executionDate.hasText(payment.executionDate)

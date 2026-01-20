@@ -68,11 +68,9 @@ class MainActivity : AppCompatActivity() {
             popupMenu.setOnMenuItemClickListener { item: MenuItem ->
                 when (item.itemId) {
                     R.id.profile_settings -> {
-                        // Handle settings
                         true
                     }
                     R.id.profile_logout -> {
-                        // Handle logout
                         true
                     }
                     else -> false

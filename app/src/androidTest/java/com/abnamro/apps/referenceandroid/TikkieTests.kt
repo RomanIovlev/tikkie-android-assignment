@@ -1,5 +1,6 @@
 package com.abnamro.apps.referenceandroid
 
+import com.abnamro.apps.referenceandroid.mocks.PaymentMockHelper.setupMockedPayment
 import com.abnamro.apps.referenceandroid.screens.MainScreen
 import com.abnamro.apps.referenceandroid.screens.PaymentDetailsScreen
 import com.abnamro.apps.referenceandroid.screens.RequestPaymentStep1Screen
@@ -11,6 +12,11 @@ import org.junit.Test
 class TikkieTests : TestSuite() {
     @Test
     fun dinnerPaymentDetailsTest() = run("Dinner Payment Details test") {
+        step("Setup mocked payment '${dinnerDetails.title}'") {
+            setupMockedPayment(dinnerDetails, activityRule)
+            step("${dinnerDetails}") {}
+        }
+        
         MainScreen {
             screenStep("Tikkie app main screen open") {
                 addPaymentButton.isDisplayed()
