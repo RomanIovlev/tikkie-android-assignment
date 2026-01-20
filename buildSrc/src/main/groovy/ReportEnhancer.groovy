@@ -23,9 +23,22 @@ class ReportEnhancer {
     private static Map<String, Integer> extractTestDurations(String htmlContent) {
         def testDurations = [:]
         def patterns = [
+            // Pattern for simple method names: testMethod passed (7.463s)
             /(\w+)\s+passed\s+\((\d+\.?\d*)s\)/,
+            // Pattern for parameterized test names: test[input: 50, expected: 50] passed (7.463s)
+            // Matches test names with brackets and special characters
+            /(test\[[^\]]+\])\s+passed\s+\((\d+\.?\d*)s\)/,
+            // Pattern for HTML table cells with simple method names: >testMethod</td>...passed...>(7.463s)
             />(\w+)<\/td>\s*<td[^>]*>passed[^<]*<\/td>\s*<td[^>]*>\((\d+\.?\d*)s\)/,
-            /"(\w+)"[^>]*>passed[^<]*\((\d+\.?\d*)s\)/
+            // Pattern for HTML table cells with parameterized test names
+            />(test\[[^\]]+\])<\/td>\s*<td[^>]*>passed[^<]*<\/td>\s*<td[^>]*>\((\d+\.?\d*)s\)/,
+            // Pattern for quoted method names in HTML: "testMethod"...passed...(7.463s)
+            /"(\w+)"[^>]*>passed[^<]*\((\d+\.?\d*)s\)/,
+            // Pattern for quoted parameterized test names
+            /"(test\[[^\]]+\])"[^>]*>passed[^<]*\((\d+\.?\d*)s\)/,
+            // More general pattern: any text before "passed" that doesn't contain HTML tags
+            // This catches edge cases and variations in HTML structure
+            />([^<>\s]+(?:\[[^\]]+\])?)\s*<\/td>\s*<td[^>]*>passed[^<]*<\/td>\s*<td[^>]*>\((\d+\.?\d*)s\)/
         ]
         patterns.each { pattern ->
             def matcher = htmlContent =~ pattern
@@ -33,7 +46,10 @@ class ReportEnhancer {
                 def methodName = match[1]
                 def durationSeconds = match[2] as double
                 def durationMillis = (durationSeconds * 1000) as int
-                testDurations[methodName] = durationMillis
+                // Only store if not already present (first match wins)
+                if (!testDurations.containsKey(methodName)) {
+                    testDurations[methodName] = durationMillis
+                }
             }
         }
         return testDurations

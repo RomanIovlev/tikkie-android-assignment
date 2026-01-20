@@ -1,8 +1,7 @@
 package com.abnamro.apps.referenceandroid
 
-import com.abnamro.apps.referenceandroid.screens.MainScreen
+import com.abnamro.apps.referenceandroid.screens.PaymentsScreen
 import com.abnamro.apps.referenceandroid.screens.AddPaymentStep1Screen
-import com.abnamro.apps.referenceandroid.testdata.dataproviders.TikkieDataProviders
 import com.abnamro.apps.referenceandroid.testdata.dataproviders.TikkieDataProviders.amountData
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -23,7 +22,7 @@ class AmountInputValidationTest(
 
     @Test
     fun test() = run("Request Payment Step1 Amount Input Validation test - input '$input'") {
-        MainScreen { navigateToPaymentAmount() }
+        PaymentsScreen { navigateToPaymentAmount() }
         AddPaymentStep1Screen {
             screenStep("Enter '$input'") { amountInput.replaceText(input) }
             screenStep("Verify input shows '$result'") { amountInput.hasText(result) }

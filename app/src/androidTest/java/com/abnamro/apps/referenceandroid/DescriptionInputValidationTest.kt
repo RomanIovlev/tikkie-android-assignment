@@ -1,8 +1,7 @@
 package com.abnamro.apps.referenceandroid
 
-import com.abnamro.apps.referenceandroid.screens.MainScreen
+import com.abnamro.apps.referenceandroid.screens.PaymentsScreen
 import com.abnamro.apps.referenceandroid.screens.AddPaymentStep2Screen
-import com.abnamro.apps.referenceandroid.testdata.dataproviders.TikkieDataProviders
 import com.abnamro.apps.referenceandroid.testdata.dataproviders.TikkieDataProviders.descriptionData
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -23,7 +22,7 @@ class DescriptionInputValidationTest(
 
     @Test
     fun test() = run("Request Payment Step2 Description Input test - description '$input'") {
-        MainScreen { navigateToPaymentDescription() }
+        PaymentsScreen { navigateToPaymentDescription() }
         AddPaymentStep2Screen {
             screenStep("Verify description input is displayed") { descriptionInput.isDisplayed() }
             screenStep("Verify character count is not displayed initially") { characterCount.isNotDisplayed() }

@@ -21,6 +21,11 @@
 * Sequence of New Payment screens: Enter Amount and Description 
 * While Payment request created it can be shared, that leads user to Payment details screen
 
+![Main screen: Payments](images/tikkie-main-screen.png)
+![Payment details](images/tikkie-payment-details.png)
+![Step1: Amount](images/tikkie-step1-add-amount.png)
+![Step2: Description](images/tikkie-step2-add-description.png)
+
 ## Testing
 
 ### Technologies
@@ -47,7 +52,8 @@ To run tests in parallel use gradle task `runTestsInParallel` or run in terminal
 * Using Kaspresso for tests to handle auto-retry(waits) and steps for best reporting
 * Tests have steps for better visibility and reporting
 * Custom reporting with structured hierarchy: Tests > Steps > (optional Substeps)
-* Test data is not implemented as there are not much data to test in project
+* Data Driven tests use Parametrized JUnit4 Runner
+* Test data Payments mocked in-memory using TikkieRepository
 
 ### Kaspresso test report
 
@@ -57,8 +63,8 @@ To run tests in parallel use gradle task `runTestsInParallel` or run in terminal
 * In case of failure failed test have failed reason attached, stacktrace and screenshot
 * It is possible to add screenshots to test reports for some steps to validate layout manually by human eyes later (using `screenStep`)
 
-![Test report](test-report-passed-example.png)
-![Failed test example](test-report-failed-test.png)
+![Test report](images/test-report-passed-example.png)
+![Failed test example](images/test-report-failed-test.png)
 
 Note: Test report doesn't work well for now with parallel test run but that can be fixed later
 

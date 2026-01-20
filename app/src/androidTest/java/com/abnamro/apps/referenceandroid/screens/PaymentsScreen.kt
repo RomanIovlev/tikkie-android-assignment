@@ -18,7 +18,7 @@ import io.github.kakaocup.kakao.screen.Screen
 import org.hamcrest.Matcher
 import org.hamcrest.Matchers.allOf
 
-object MainScreen : Screen<MainScreen>() {
+object PaymentsScreen : Screen<PaymentsScreen>() {
     val addPaymentButton = KImageView { withId(R.id.addPaymentButton) }
     val paymentRecyclerView = KRecyclerView(
         builder = { withId(R.id.paymentRecyclerView) },

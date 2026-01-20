@@ -1,7 +1,7 @@
 package com.abnamro.apps.referenceandroid
 
-import com.abnamro.apps.referenceandroid.mocks.PaymentMockHelper.setupMockedPayments
-import com.abnamro.apps.referenceandroid.screens.MainScreen
+import com.abnamro.apps.referenceandroid.mocks.PaymentMocks.setupMockedPayments
+import com.abnamro.apps.referenceandroid.screens.PaymentsScreen
 import com.abnamro.apps.referenceandroid.screens.PaymentDetailsScreen
 import com.abnamro.apps.referenceandroid.screens.AddPaymentStep1Screen
 import com.abnamro.apps.referenceandroid.screens.AddPaymentStep2Screen
@@ -18,19 +18,19 @@ class TikkieSmokeTests : TestSuite() {
             setupMockedPayments(listOf(dinnerDetails), activityRule)
             step("$dinnerDetails") {}
         }
-        MainScreen { selectPaymentByTitle(dinnerDetails.title) }
+        PaymentsScreen { selectPaymentByTitle(dinnerDetails.title) }
         PaymentDetailsScreen {
             verifyAllTexts(dinnerDetails)
             screenStep("Click back button") {
                 backButton.click()
             }
         }
-        MainScreen { verifyMainScreenOpen() }
+        PaymentsScreen { verifyMainScreenOpen() }
     }
 
     @Test
     fun createNewTikkiePaymentTest() = run("Create New Tikkie Payment test") {
-        MainScreen {
+        PaymentsScreen {
             verifyMainScreenOpen()
             screenStep("Click + sign button") {
                 addPaymentButton.click()
@@ -58,7 +58,7 @@ class TikkieSmokeTests : TestSuite() {
             setupMockedPayments(mockedAlicePayments, activityRule)
         }
 
-        MainScreen {
+        PaymentsScreen {
             verifyMainScreenOpen()
             step("Verify payment list contains ${mockedAlicePayments.size} items") {
                 paymentRecyclerView {

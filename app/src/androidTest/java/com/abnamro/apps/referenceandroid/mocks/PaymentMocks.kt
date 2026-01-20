@@ -10,7 +10,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-object PaymentMockHelper {
+object PaymentMocks {
     
     private val dateTimeFormat = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
     private val dateFormatLong = SimpleDateFormat("dd MMMM yyyy", Locale.getDefault())

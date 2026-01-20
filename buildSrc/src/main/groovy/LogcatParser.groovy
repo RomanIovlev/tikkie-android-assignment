@@ -7,14 +7,30 @@ class LogcatParser {
                 def steps = extractStepsFromLogcat(logcatContent)
                 
                 if (steps.size() > 0) {
-                    def filenameMatch = logcatFile.name =~ /logcat-(.+?)-(.+?)\.txt/
-                    if (filenameMatch) {
-                        def className = filenameMatch[0][1]
-                        def testMethodName = filenameMatch[0][2]
-                        if (!testsByClass.containsKey(className)) {
-                            testsByClass[className] = [:]
+                    // Parse filename: logcat-ClassName-TestMethodName.txt
+                    // Handle parameterized test names with brackets, colons, spaces, etc.
+                    // Example: logcat-AmountInputValidationTest-test[input: 50, expected: 50].txt
+                    def filename = logcatFile.name
+                    def txtIndex = filename.lastIndexOf('.txt')
+                    if (txtIndex > 0) {
+                        def nameWithoutExt = filename.substring(0, txtIndex)
+                        // Find the last dash to separate class name from method name
+                        // This handles cases where method name contains dashes (though rare)
+                        def lastDashIndex = nameWithoutExt.lastIndexOf('-')
+                        if (lastDashIndex > 0 && lastDashIndex < nameWithoutExt.length() - 1) {
+                            def className = nameWithoutExt.substring(0, lastDashIndex)
+                            def testMethodName = nameWithoutExt.substring(lastDashIndex + 1)
+                            // Handle URL encoding if Android test runner encoded special characters
+                            try {
+                                testMethodName = java.net.URLDecoder.decode(testMethodName, "UTF-8")
+                            } catch (Exception e) {
+                                // If decoding fails, use original name (might already be decoded)
+                            }
+                            if (!testsByClass.containsKey(className)) {
+                                testsByClass[className] = [:]
+                            }
+                            testsByClass[className][testMethodName] = steps
                         }
-                        testsByClass[className][testMethodName] = steps
                     }
                 }
             }
