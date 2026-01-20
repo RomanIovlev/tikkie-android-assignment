@@ -30,6 +30,7 @@ class LogcatParser {
         def currentFailedStep = null
         def errorBuffer = []
         def capturingError = false
+        def testName = null // Store test name from "in Test Name" pattern
         
         lines.eachWithIndex { line, index ->
             if (line.contains('TEST STEP:') && 
@@ -41,6 +42,12 @@ class LogcatParser {
                 errorBuffer = []
                 currentFailedStep = null
                 
+                // Extract test name from "TEST STEP: "..." in Test Name" pattern
+                def testNameMatch = line =~ /TEST STEP:.*?\sin\s(.+)$/
+                if (testNameMatch && !testNameMatch[0][1].isEmpty()) {
+                    testName = testNameMatch[0][1].trim()
+                }
+                
                 def stepMatch = line =~ /TEST STEP: "(?:\d+(?:\.\d+)*\.\s+)?(.+?)"/
                 if (stepMatch) {
                     def stepName = stepMatch[0][1]
@@ -51,7 +58,8 @@ class LogcatParser {
                         screenshot: '',
                         error: '',
                         errorSummary: '',
-                        children: []
+                        children: [],
+                        testName: testName // Store test name with step
                     ]
                     
                     if (!stepStack.isEmpty()) {

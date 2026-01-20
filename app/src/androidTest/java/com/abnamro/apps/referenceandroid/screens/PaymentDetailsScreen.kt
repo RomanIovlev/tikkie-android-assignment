@@ -10,7 +10,6 @@ import io.github.kakaocup.kakao.text.KTextView
 import io.github.kakaocup.kakao.common.views.KView
 
 object PaymentDetailsScreen : Screen<PaymentDetailsScreen>() {
-    val backButton = KImageView { withId(R.id.backButton) }
     val title = KTextView { withId(R.id.title) }
     val subtitle = KTextView { withId(R.id.subtitle) }
     val statusLabel = KTextView { withId(R.id.statusButton) }
@@ -28,19 +27,17 @@ object PaymentDetailsScreen : Screen<PaymentDetailsScreen>() {
         payment: PaymentData
     ) {
         screenStep("Verify Payment details") {
-            val stringAmount = String.format("%.2f", payment.amount)
             title.hasText(payment.title)
-            if (payment.subtitle != null) {
-                subtitle.hasText("Tikkie of € $stringAmount p.p.")
-            }
+            paymentName.hasText(payment.title)
+
+            val stringAmount = String.format("%.2f", payment.amount)
+            subtitle.hasText("Tikkie of € $stringAmount p.p.")
+            amount.hasText("€ $stringAmount")
+            totalSettled.hasText("Total settled up € $stringAmount")
+
             if (payment.status != null) {
                 statusLabel.hasText(payment.status)
             }
-            if (payment.totalSettled != null) {
-                totalSettled.hasText("Total settled up € $stringAmount")
-            }
-            paymentName.hasText(payment.title)
-            amount.hasText("€ $stringAmount")
             if (payment.tikkieId != null) {
                 tikkieId.hasText(payment.tikkieId)
             }

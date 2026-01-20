@@ -74,15 +74,21 @@ class StepProcessor {
     }
 
     static boolean looksLikeTestName(String stepName, String testMethodName) {
+        // Must start with "Test " to be considered a test name (from run("Test ..."))
+        def startsWithTest = stepName.startsWith('Test ') || stepName.startsWith('test ')
         def containsTest = stepName.toLowerCase().contains('test')
+        
+        // More strict criteria: must start with "Test " OR be clearly a test description
         def looksLikeTestName = stepName != testMethodName &&
-                (containsTest ||
-                        (stepName.contains(' ') &&
-                                stepName.matches(/^[A-Z][a-zA-Z\s]+$/))) &&
-                !stepName.toLowerCase().startsWith('open') &&
-                !stepName.toLowerCase().startsWith('verify') &&
-                !stepName.toLowerCase().startsWith('check') &&
-                !stepName.toLowerCase().startsWith('click')
+                (startsWithTest || 
+                 (containsTest && 
+                  stepName.contains(' ') &&
+                  stepName.matches(/^[A-Z][a-zA-Z\s]{10,}$/) && // At least 10 chars, starts with capital
+                  !stepName.toLowerCase().startsWith('open') &&
+                  !stepName.toLowerCase().startsWith('verify') &&
+                  !stepName.toLowerCase().startsWith('check') &&
+                  !stepName.toLowerCase().startsWith('click') &&
+                  !stepName.toLowerCase().startsWith('tikkie'))) // Exclude "Tikkie app main screen open"
         
         return looksLikeTestName
     }

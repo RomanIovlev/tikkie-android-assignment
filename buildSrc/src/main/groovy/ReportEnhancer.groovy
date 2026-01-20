@@ -42,14 +42,37 @@ class ReportEnhancer {
         def unifiedTests = []
         
         tests.each { testMethodName, steps ->
+            // Always start with formatted method name as default
             def testName = StepProcessor.formatMethodName(testMethodName)
             def actualSteps = steps
             def testDuration = ''
             
-            if (steps.size() > 0) {
+            // First priority: Find test name from any step that has it (from "in Test Name" pattern in logcat)
+            def foundTestName = null
+            def findTestNameInSteps = { stepList ->
+                stepList.each { step ->
+                    if (step.testName && step.testName.trim()) {
+                        foundTestName = step.testName.trim()
+                        return
+                    }
+                    if (step.children && step.children.size() > 0) {
+                        findTestNameInSteps(step.children)
+                    }
+                }
+            }
+            findTestNameInSteps(steps)
+            
+            if (foundTestName) {
+                testName = foundTestName
+            }
+            // Second priority: Check if first step name looks like a test name
+            else if (steps.size() > 0) {
                 def firstStep = steps[0]
                 def firstStepName = firstStep.name
-                def looksLikeTestName = StepProcessor.looksLikeTestName(firstStepName, testMethodName)
+                def looksLikeTestName = StepProcessor.looksLikeTestName(firstStepName, testMethodName) &&
+                                        (firstStepName.toLowerCase().contains('test') || 
+                                         firstStepName.matches(/^Test\s+.+/))
+                
                 if (firstStep.children && firstStep.children.size() > 0 && looksLikeTestName) {
                     testName = firstStepName
                     actualSteps = firstStep.children

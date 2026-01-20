@@ -10,7 +10,7 @@ import org.junit.Test
 
 class TikkieTests : TestSuite() {
     @Test
-    fun testDinnerPaymentDetails() = run("Test Dinner Payment Details") {
+    fun dinnerPaymentDetailsTest() = run("Dinner Payment Details test") {
         MainScreen {
             screenStep("Tikkie app main screen open") {
                 addPaymentButton.isDisplayed()
@@ -18,13 +18,13 @@ class TikkieTests : TestSuite() {
             selectPaymentByTitle(dinnerDetails.title)
         }
         PaymentDetailsScreen {
-            screenStep("Check all texts on Dinner details") {
+            screenStep("Check '${dinnerDetails.title}' Payment details") {
                 verifyAllTexts(dinnerDetails)
             }
         }
     }
     @Test
-    fun testRequestPaymentFlow() = run("Test Request Payment Flow") {
+    fun createNewTikkiePaymentTest() = run("Create New Tikkie Payment test") {
         MainScreen {
             screenStep("Tikkie app main screen open") {
                 addPaymentButton.isDisplayed()
@@ -51,7 +51,7 @@ class TikkieTests : TestSuite() {
             }
         }
         PaymentDetailsScreen {
-            screenStep("Check that entered values shown on result screen") {
+            screenStep("Check newly created Payment details") {
                 verifyAllTexts(newPayment)
             }
         }
