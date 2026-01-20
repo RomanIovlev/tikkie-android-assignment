@@ -2,7 +2,9 @@ package com.abnamro.apps.referenceandroid.mocks
 
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import com.abnamro.apps.referenceandroid.MainActivity
+import com.abnamro.apps.referenceandroid.TikkieRepository
 import com.abnamro.apps.referenceandroid.TikkieRepository.addPayment
+import com.abnamro.apps.referenceandroid.TikkieRepository.restorePayments
 import com.abnamro.apps.referenceandroid.model.PaymentStatus
 import com.abnamro.apps.referenceandroid.model.TikkiePayment
 import com.abnamro.apps.referenceandroid.testdata.dataclass.PaymentData
@@ -17,6 +19,14 @@ object PaymentMockHelper {
 
     fun setupMockedPayment(paymentData: PaymentData, activityRule: ActivityScenarioRule<MainActivity>) {
         addPayment(convertPaymentDataToTikkiePayment(paymentData))
+        activityRule.scenario.recreate()
+    }
+
+    fun setupMockedPayments(paymentsData: List<PaymentData>, activityRule: ActivityScenarioRule<MainActivity>) {
+        restorePayments()
+        paymentsData.forEach { paymentData ->
+            addPayment(convertPaymentDataToTikkiePayment(paymentData))
+        }
         activityRule.scenario.recreate()
     }
     
