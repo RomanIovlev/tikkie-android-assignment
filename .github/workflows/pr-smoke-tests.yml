@@ -53,7 +53,7 @@ jobs:
           arch: x86_64
           profile: Nexus 6
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot-save -wipe-data -skip-adb-auth -partition-size 4096
-          boot-timeout: 600
+          boot-timeout: 360
           script: |
             export CI=true
             ./gradlew smokeTests --no-daemon --stacktrace
