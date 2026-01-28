@@ -1,0 +1,81 @@
+name: PR Smoke Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'app/src/**'
+      - 'buildSrc/**'
+      - 'app/build.gradle'
+      - '.github/workflows/pr-smoke-tests.yml'
+
+jobs:
+  smoke-tests:
+    name: Smoke Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Build APK and Test APK
+        run: ./gradlew assembleSmokeTests --no-daemon --stacktrace --parallel --build-cache
+
+      - name: Run Smoke Tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          profile: Nexus 6
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot-save -wipe-data -skip-adb-auth -partition-size 4096
+          boot-timeout: 600
+          script: |
+            export CI=true
+            ./gradlew smokeTests --no-daemon --stacktrace
+
+      - name: Upload Test Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-tests-report-${{ github.run_number }}
+          path: |
+            app/build/reports/androidTests/connected/debug/**
+            app/build/outputs/androidTest-results/connected/debug/**
+          retention-days: 30
+          if-no-files-found: warn
+          compression-level: 6
+
+      - name: Upload Screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-tests-screenshots-${{ github.run_number }}
+          path: app/build/reports/androidTests/connected/debug/screenshots/**
+          if-no-files-found: ignore
+          retention-days: 30
+          compression-level: 6

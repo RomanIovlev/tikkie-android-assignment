@@ -13,6 +13,9 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+        if (gradle.startParameter.taskNames.any { it.endsWith('smokeTests') }) {
+            testInstrumentationRunnerArguments = [ class: 'com.abnamro.apps.referenceandroid.TikkieSmokeTests' ]
+        }
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -78,7 +81,7 @@ tasks.register('viewTestReport') {
 }
 
 tasks.configureEach { task ->
-    if (task.name in ['enhanceTestReport', 'openTestReport', 'viewTestReport']) {
+    if (task.name in ['enhanceTestReport', 'openTestReport', 'viewTestReport', 'smokeTests', 'assembleSmokeTests']) {
         task.group = 'verification'
     }
 }
@@ -100,6 +103,19 @@ tasks.register('enhanceTestReport') {
 
         ReportEnhancer.enhanceReports(reportDir, testsByClass, screenshotsDir, adbPath)
     }
+}
+
+tasks.register('assembleSmokeTests') {
+    group = 'verification'
+    description = 'Build APK and test APK required for smoke tests (like npm run build before test)'
+    dependsOn 'assembleDebug', 'assembleDebugAndroidTest'
+}
+
+tasks.register('smokeTests') {
+    group = 'verification'
+    description = 'Run smoke tests only (TikkieSmokeTests). Requires device/emulator. Use: ./gradlew smokeTests'
+    dependsOn 'connectedDebugAndroidTest'
+    finalizedBy 'enhanceTestReport'
 }
 
 tasks.register('runTestsInParallel') {
